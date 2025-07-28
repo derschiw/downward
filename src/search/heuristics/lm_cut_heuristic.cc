@@ -21,9 +21,15 @@ LandmarkCutHeuristic::LandmarkCutHeuristic(
     if (log.is_at_least_normal()) {
         log << "Initializing landmark cut heuristic..." << endl;
     }
+
+    // task_properties::dump_task(task_proxy);
 }
 
 int LandmarkCutHeuristic::compute_heuristic(const State &ancestor_state) {
+    // log << "" << endl;
+    // task_properties::dump_fdr(ancestor_state);
+    // task_properties::dump_pddl(ancestor_state);
+
     State state = convert_ancestor_state(ancestor_state);
     int total_cost = 0;
     bool dead_end = landmark_generator->compute_landmarks(
@@ -33,6 +39,7 @@ int LandmarkCutHeuristic::compute_heuristic(const State &ancestor_state) {
 
     if (dead_end)
         return DEAD_END;
+    // log << total_cost << endl << endl;
     return total_cost;
 }
 
