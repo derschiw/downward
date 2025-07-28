@@ -697,6 +697,7 @@ create_fast_downward_library(
     SOURCES
         heuristics/lm_cut_heuristic
         heuristics/lm_cut_landmarks
+        heuristics/lm_cut_pcf
     DEPENDS
         priority_queues
         task_properties

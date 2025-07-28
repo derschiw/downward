@@ -2,6 +2,7 @@
 #define HEURISTICS_LM_CUT_LANDMARKS_H
 
 #include "../task_proxy.h"
+#include "lm_cut_pcf.h"
 
 #include "../algorithms/priority_queues.h"
 
@@ -9,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+
 
 namespace lm_cut_heuristic {
 // TODO: Fix duplication with the other relaxation heuristics.
@@ -57,6 +59,7 @@ class LandmarkCutLandmarks {
     RelaxedProposition artificial_goal;
     int num_propositions;
     priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
+    PreconditionChoiceFunction precondition_choice_function;
 
     void build_relaxed_operator(const OperatorProxy &op);
     void add_relaxed_operator(std::vector<RelaxedProposition *> &&precondition,
