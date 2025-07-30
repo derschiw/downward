@@ -70,9 +70,9 @@ class LandmarkCutLandmarks {
     void setup_exploration_queue_state(const State &state);
     void first_exploration(const State &state);
     void first_exploration_incremental(std::vector<RelaxedOperator *> &cut);
-    void second_exploration(const State &state,
-                            std::vector<RelaxedProposition *> &second_exploration_queue,
-                            std::vector<RelaxedOperator *> &cut);
+    void backward_exploration(const State &state,
+                              std::vector<RelaxedProposition *> &backward_exploration_queue,
+                              std::vector<RelaxedOperator *> &cut);
 
     void enqueue_if_necessary(RelaxedProposition *prop, int cost) {
         assert(cost >= 0);

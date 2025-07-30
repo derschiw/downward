@@ -168,11 +168,11 @@ void LandmarkCutLandmarks::first_exploration(const State &state) {
     }
 }
 
-/* 
+/*
     Performance optimization for the first exploration phase.
     Instead of reinitializing the priority queue and redoing the
     first exploration, we can incrementally update the h_max values
-    based on the cut operators found in the previous round. 
+    based on the cut operators found in the previous round.
 */
 void LandmarkCutLandmarks::first_exploration_incremental(
     vector<RelaxedOperator *> &cut) {
@@ -231,26 +231,26 @@ void LandmarkCutLandmarks::first_exploration_incremental(
         |                      |                  |
     Start here         Find these        Already known
 */
-void LandmarkCutLandmarks::second_exploration(
-    const State &state, vector<RelaxedProposition *> &second_exploration_queue,
+void LandmarkCutLandmarks::backward_exploration(
+    const State &state, vector<RelaxedProposition *> &backward_exploration_queue,
     vector<RelaxedOperator *> &cut) {
-    assert(second_exploration_queue.empty());
+    assert(backward_exploration_queue.empty());
     assert(cut.empty());
 
     // The artificial preconditions is a dummy proposition, that
     // connects all initial facts.
     artificial_precondition.status = BEFORE_GOAL_ZONE;
-    second_exploration_queue.push_back(&artificial_precondition);
+    backward_exploration_queue.push_back(&artificial_precondition);
 
     for (FactProxy init_fact : state) {
         RelaxedProposition *init_prop = get_proposition(init_fact);
         init_prop->status = BEFORE_GOAL_ZONE;
-        second_exploration_queue.push_back(init_prop);
+        backward_exploration_queue.push_back(init_prop);
     }
 
-    while (!second_exploration_queue.empty()) {
-        RelaxedProposition *prop = second_exploration_queue.back();
-        second_exploration_queue.pop_back();
+    while (!backward_exploration_queue.empty()) {
+        RelaxedProposition *prop = backward_exploration_queue.back();
+        backward_exploration_queue.pop_back();
         const vector<RelaxedOperator *> &triggered_operators =
             prop->precondition_of;
         for (RelaxedOperator *relaxed_op : triggered_operators) {
@@ -275,7 +275,7 @@ void LandmarkCutLandmarks::second_exploration(
                         if (effect->status != BEFORE_GOAL_ZONE) {
                             assert(effect->status == REACHED);
                             effect->status = BEFORE_GOAL_ZONE;
-                            second_exploration_queue.push_back(effect);
+                            backward_exploration_queue.push_back(effect);
                         }
                     }
                 }
@@ -335,12 +335,12 @@ bool LandmarkCutLandmarks::compute_landmarks(
         op.cost = op.base_cost;
     }
     // The following three variables could be declared inside the loop
-    // ("second_exploration_queue" even inside second_exploration),
+    // ("backward_exploration_queue" even inside backward_exploration),
     // but having them here saves reallocations and hence provides a
     // measurable speed boost.
     vector<RelaxedOperator *> cut;
     Landmark landmark;
-    vector<RelaxedProposition *> second_exploration_queue;
+    vector<RelaxedProposition *> backward_exploration_queue;
 
     // First forward exploration to compute the h_max values.
     first_exploration(state);
@@ -358,8 +358,8 @@ bool LandmarkCutLandmarks::compute_landmarks(
 
         // Backward exploration to find the cut (operators that
         // can reach the goal zone).
-        second_exploration_queue.clear();
-        second_exploration(state, second_exploration_queue, cut);
+        backward_exploration_queue.clear();
+        backward_exploration(state, backward_exploration_queue, cut);
         assert(!cut.empty());
 
         // here we find the minimum cost of the cut (starting
