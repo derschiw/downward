@@ -118,7 +118,7 @@ void LandmarkCutLandmarks::setup_exploration_queue_state(const State &state) {
     cost to reach each proposition.
 */
 
-void LandmarkCutLandmarks::first_exploration(const State &state) {
+void LandmarkCutLandmarks::h_max_exploration(const State &state) {
     // Initialize (setup)
     assert(priority_queue.empty());
     setup_exploration_queue();
@@ -174,7 +174,7 @@ void LandmarkCutLandmarks::first_exploration(const State &state) {
     first exploration, we can incrementally update the h_max values
     based on the cut operators found in the previous round.
 */
-void LandmarkCutLandmarks::first_exploration_incremental(
+void LandmarkCutLandmarks::h_max_exploration_incremental(
     vector<RelaxedOperator *> &cut) {
     assert(priority_queue.empty());
     /* We pretend that this queue has had as many pushes already as we
@@ -343,7 +343,7 @@ bool LandmarkCutLandmarks::compute_landmarks(
     vector<RelaxedProposition *> backward_exploration_queue;
 
     // First forward exploration to compute the h_max values.
-    first_exploration(state);
+    h_max_exploration(state);
     // validate_h_max();  // too expensive to use even in regular debug mode
 
     // If there are no reachable propositions, we have a dead end.
@@ -388,7 +388,7 @@ bool LandmarkCutLandmarks::compute_landmarks(
         }
 
         // Compute the new h_max values for the next round efficiently.
-        first_exploration_incremental(cut);
+        h_max_exploration_incremental(cut);
         // validate_h_max();  // too expensive to use even in regular debug mode
         cut.clear();
 

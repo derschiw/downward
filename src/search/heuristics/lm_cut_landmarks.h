@@ -68,8 +68,8 @@ class LandmarkCutLandmarks {
     RelaxedProposition *get_proposition(const FactProxy &fact);
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
-    void first_exploration(const State &state);
-    void first_exploration_incremental(std::vector<RelaxedOperator *> &cut);
+    void h_max_exploration(const State &state);
+    void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
     void backward_exploration(const State &state,
                               std::vector<RelaxedProposition *> &backward_exploration_queue,
                               std::vector<RelaxedOperator *> &cut);
