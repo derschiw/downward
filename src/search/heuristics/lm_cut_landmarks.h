@@ -90,7 +90,8 @@ public:
     using CostCallback = std::function<void (int)>;
     using LandmarkCallback = std::function<void (const Landmark &, int)>;
 
-    LandmarkCutLandmarks(const TaskProxy &task_proxy);
+    LandmarkCutLandmarks(const TaskProxy &task_proxy,
+                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX);
 
     /*
       Compute LM-cut landmarks for the given state.

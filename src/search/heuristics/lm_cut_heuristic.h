@@ -3,6 +3,8 @@
 
 #include "../heuristic.h"
 
+#include "lm_cut_pcf.h"
+
 #include <memory>
 
 namespace plugins {
@@ -20,7 +22,8 @@ public:
     LandmarkCutHeuristic(
         const std::shared_ptr<AbstractTask> &transform,
         bool cache_estimates, const std::string &description,
-        utils::Verbosity verbosity);
+        utils::Verbosity verbosity,
+        const PCFStrategy &pcf_strategy);
 };
 }
 
