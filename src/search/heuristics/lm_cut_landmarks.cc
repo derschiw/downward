@@ -88,6 +88,15 @@ RelaxedProposition *LandmarkCutLandmarks::get_proposition(
 }
 
 // heuristic computation
+void LandmarkCutLandmarks::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
+    assert(cost >= 0);
+    if (prop->status == UNREACHED || prop->h_max_cost > cost) {
+        prop->status = REACHED;
+        prop->h_max_cost = cost;
+        priority_queue.push(cost, prop);
+    }
+}
+
 void LandmarkCutLandmarks::setup_exploration_queue() {
     priority_queue.clear();
 

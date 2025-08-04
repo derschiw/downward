@@ -68,23 +68,15 @@ class LandmarkCutLandmarks {
     RelaxedProposition *get_proposition(const FactProxy &fact);
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
+    void enqueue_if_necessary(RelaxedProposition *prop, int cost);
     void h_max_exploration(const State &state);
     void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
     void backward_exploration(const State &state,
                               std::vector<RelaxedProposition *> &backward_exploration_queue,
                               std::vector<RelaxedOperator *> &cut);
-
-    void enqueue_if_necessary(RelaxedProposition *prop, int cost) {
-        assert(cost >= 0);
-        if (prop->status == UNREACHED || prop->h_max_cost > cost) {
-            prop->status = REACHED;
-            prop->h_max_cost = cost;
-            priority_queue.push(cost, prop);
-        }
-    }
-
     void mark_goal_plateau(RelaxedProposition *subgoal);
     void validate_h_max() const;
+
 public:
     using Landmark = std::vector<int>;
     using CostCallback = std::function<void (int)>;
