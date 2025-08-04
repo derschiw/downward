@@ -31,17 +31,17 @@ struct RelaxedOperator {
 
     int cost;
     int unsatisfied_preconditions;
-    int h_max_supporter_cost; // h_max_cost of h_max_supporter
-    RelaxedProposition *h_max_supporter;
+    int heuristic_supporter_cost; // heuristic_cost of heuristic_supporter
+    RelaxedProposition *heuristic_supporter;
     RelaxedOperator(std::vector<RelaxedProposition *> &&pre,
                     std::vector<RelaxedProposition *> &&eff,
                     int op_id, int base)
         : original_op_id(op_id), preconditions(pre), effects(eff), base_cost(base),
-          cost(-1), unsatisfied_preconditions(-1), h_max_supporter_cost(-1),
-          h_max_supporter(nullptr) {
+          cost(-1), unsatisfied_preconditions(-1), heuristic_supporter_cost(-1),
+          heuristic_supporter(nullptr) {
     }
 
-    inline void update_h_max_supporter();
+    inline void update_heuristic_supporter();
 };
 
 struct RelaxedProposition {
@@ -49,7 +49,7 @@ struct RelaxedProposition {
     std::vector<RelaxedOperator *> effect_of;
 
     PropositionStatus status;
-    int h_max_cost;
+    int heuristic_cost;
 };
 
 class LandmarkCutLandmarks {
@@ -68,23 +68,23 @@ class LandmarkCutLandmarks {
     RelaxedProposition *get_proposition(const FactProxy &fact);
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
-    void h_max_exploration(const State &state);
-    void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
+    void heuristic_exploration(const State &state);
+    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut);
     void backward_exploration(const State &state,
                               std::vector<RelaxedProposition *> &backward_exploration_queue,
                               std::vector<RelaxedOperator *> &cut);
 
     void enqueue_if_necessary(RelaxedProposition *prop, int cost) {
         assert(cost >= 0);
-        if (prop->status == UNREACHED || prop->h_max_cost > cost) {
+        if (prop->status == UNREACHED || prop->heuristic_cost > cost) {
             prop->status = REACHED;
-            prop->h_max_cost = cost;
+            prop->heuristic_cost = cost;
             priority_queue.push(cost, prop);
         }
     }
 
     void mark_goal_plateau(RelaxedProposition *subgoal);
-    void validate_h_max() const;
+    void validate_heuristic() const;
 public:
     using Landmark = std::vector<int>;
     using CostCallback = std::function<void (int)>;
@@ -110,12 +110,12 @@ public:
                            const LandmarkCallback &landmark_callback);
 };
 
-inline void RelaxedOperator::update_h_max_supporter() {
+inline void RelaxedOperator::update_heuristic_supporter() {
     assert(!unsatisfied_preconditions);
     for (size_t i = 0; i < preconditions.size(); ++i)
-        if (preconditions[i]->h_max_cost > h_max_supporter->h_max_cost)
-            h_max_supporter = preconditions[i];
-    h_max_supporter_cost = h_max_supporter->h_max_cost;
+        if (preconditions[i]->heuristic_cost > heuristic_supporter->heuristic_cost)
+            heuristic_supporter = preconditions[i];
+    heuristic_supporter_cost = heuristic_supporter->heuristic_cost;
 }
 }
 
