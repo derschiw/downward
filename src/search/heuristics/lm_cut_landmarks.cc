@@ -9,11 +9,7 @@
 using namespace std;
 
 namespace lm_cut_heuristic {
-// construction and destruction
-LandmarkCutLandmarks::LandmarkCutLandmarks(
-    const TaskProxy &task_proxy,
-    const PCFStrategy &pcf_strategy) :
-    precondition_choice_function(pcf_strategy) {
+LandmarkCutCore::LandmarkCutCore(const TaskProxy &task_proxy) {
     task_properties::verify_no_axioms(task_proxy);
     task_properties::verify_no_conditional_effects(task_proxy);
 
@@ -56,7 +52,7 @@ LandmarkCutLandmarks::LandmarkCutLandmarks(
     }
 }
 
-void LandmarkCutLandmarks::build_relaxed_operator(const OperatorProxy &op) {
+void LandmarkCutCore::build_relaxed_operator(const OperatorProxy &op) {
     vector<RelaxedProposition *> precondition;
     vector<RelaxedProposition *> effects;
     for (FactProxy pre : op.get_preconditions()) {
@@ -69,7 +65,7 @@ void LandmarkCutLandmarks::build_relaxed_operator(const OperatorProxy &op) {
         move(precondition), move(effects), op.get_id(), op.get_cost());
 }
 
-void LandmarkCutLandmarks::add_relaxed_operator(
+void LandmarkCutCore::add_relaxed_operator(
     vector<RelaxedProposition *> &&precondition,
     vector<RelaxedProposition *> &&effects,
     int op_id, int base_cost) {
@@ -80,7 +76,7 @@ void LandmarkCutLandmarks::add_relaxed_operator(
     relaxed_operators.push_back(relaxed_op);
 }
 
-RelaxedProposition *LandmarkCutLandmarks::get_proposition(
+RelaxedProposition *LandmarkCutCore::get_proposition(
     const FactProxy &fact) {
     int var_id = fact.get_variable().get_id();
     int val = fact.get_value();
@@ -88,7 +84,7 @@ RelaxedProposition *LandmarkCutLandmarks::get_proposition(
 }
 
 // heuristic computation
-void LandmarkCutLandmarks::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
+void LandmarkCutHeuristicExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
     assert(cost >= 0);
     if (prop->status == UNREACHED || prop->h_max_cost > cost) {
         prop->status = REACHED;
@@ -97,30 +93,30 @@ void LandmarkCutLandmarks::enqueue_if_necessary(RelaxedProposition *prop, int co
     }
 }
 
-void LandmarkCutLandmarks::setup_exploration_queue() {
+void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     priority_queue.clear();
 
-    for (auto &var_props : propositions) {
+    for (auto &var_props : core.propositions) {
         for (RelaxedProposition &prop : var_props) {
             prop.status = UNREACHED;
         }
     }
 
-    artificial_goal.status = UNREACHED;
-    artificial_precondition.status = UNREACHED;
+    core.artificial_goal.status = UNREACHED;
+    core.artificial_precondition.status = UNREACHED;
 
-    for (RelaxedOperator &op : relaxed_operators) {
+    for (RelaxedOperator &op : core.relaxed_operators) {
         op.unsatisfied_preconditions = op.preconditions.size();
         op.h_max_supporter = nullptr;
         op.h_max_supporter_cost = numeric_limits<int>::max();
     }
 }
 
-void LandmarkCutLandmarks::setup_exploration_queue_state(const State &state) {
+void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
-        enqueue_if_necessary(get_proposition(init_fact), 0);
+        enqueue_if_necessary(core.get_proposition(init_fact), 0);
     }
-    enqueue_if_necessary(&artificial_precondition, 0);
+    enqueue_if_necessary(&core.artificial_precondition, 0);
 }
 
 /*
@@ -130,7 +126,7 @@ void LandmarkCutLandmarks::setup_exploration_queue_state(const State &state) {
     cost to reach each proposition.
 */
 
-void LandmarkCutLandmarks::h_max_exploration(const State &state) {
+void LandmarkCutHeuristicExploration::h_max_exploration(const State &state) {
     // Initialize (setup)
     assert(priority_queue.empty());
     setup_exploration_queue();
@@ -186,7 +182,7 @@ void LandmarkCutLandmarks::h_max_exploration(const State &state) {
     first exploration, we can incrementally update the h_max values
     based on the cut operators found in the previous round.
 */
-void LandmarkCutLandmarks::h_max_exploration_incremental(
+void LandmarkCutHeuristicExploration::h_max_exploration_incremental(
     vector<RelaxedOperator *> &cut) {
     assert(priority_queue.empty());
     /* We pretend that this queue has had as many pushes already as we
@@ -194,7 +190,7 @@ void LandmarkCutLandmarks::h_max_exploration_incremental(
        heap-based too aggressively. This should prevent ever switching
        to heap-based in problems where action costs are at most 1.
     */
-    priority_queue.add_virtual_pushes(num_propositions);
+    priority_queue.add_virtual_pushes(core.num_propositions);
     for (RelaxedOperator *relaxed_op : cut) {
         int cost = relaxed_op->h_max_supporter_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects)
@@ -229,6 +225,36 @@ void LandmarkCutLandmarks::h_max_exploration_incremental(
     }
 }
 
+void LandmarkCutHeuristicExploration::validate_h_max() const {
+#ifndef NDEBUG
+    // Using conditional compilation to avoid complaints about unused
+    // variables when using NDEBUG. This whole code does nothing useful
+    // when assertions are switched off anyway.
+    for (const RelaxedOperator &op : core.relaxed_operators) {
+        if (op.unsatisfied_preconditions) {
+            bool reachable = true;
+            for (RelaxedProposition *pre : op.preconditions) {
+                if (pre->status == UNREACHED) {
+                    reachable = false;
+                    break;
+                }
+            }
+            assert(!reachable);
+            assert(!op.h_max_supporter);
+        } else {
+            assert(op.h_max_supporter);
+            int h_max_cost = op.h_max_supporter_cost;
+            assert(h_max_cost == op.h_max_supporter->h_max_cost);
+            for (RelaxedProposition *pre : op.preconditions) {
+                assert(pre->status != UNREACHED);
+                assert(pre->h_max_cost <= h_max_cost);
+            }
+        }
+    }
+#endif
+}
+
+
 /*
     The second exploration phase is a backward exploration (from init to goal)
     that identifies the cut operators that can reach the goal zone (i.e.,
@@ -243,7 +269,7 @@ void LandmarkCutLandmarks::h_max_exploration_incremental(
         |                      |                  |
     Start here         Find these        Already known
 */
-void LandmarkCutLandmarks::backward_exploration(
+void LandmarkCutBackwardExploration::backward_exploration(
     const State &state, vector<RelaxedProposition *> &backward_exploration_queue,
     vector<RelaxedOperator *> &cut) {
     assert(backward_exploration_queue.empty());
@@ -251,11 +277,11 @@ void LandmarkCutLandmarks::backward_exploration(
 
     // The artificial preconditions is a dummy proposition, that
     // connects all initial facts.
-    artificial_precondition.status = BEFORE_GOAL_ZONE;
-    backward_exploration_queue.push_back(&artificial_precondition);
+    core.artificial_precondition.status = BEFORE_GOAL_ZONE;
+    backward_exploration_queue.push_back(&core.artificial_precondition);
 
     for (FactProxy init_fact : state) {
-        RelaxedProposition *init_prop = get_proposition(init_fact);
+        RelaxedProposition *init_prop = core.get_proposition(init_fact);
         init_prop->status = BEFORE_GOAL_ZONE;
         backward_exploration_queue.push_back(init_prop);
     }
@@ -296,7 +322,7 @@ void LandmarkCutLandmarks::backward_exploration(
     }
 }
 
-void LandmarkCutLandmarks::mark_goal_plateau(RelaxedProposition *subgoal) {
+void LandmarkCutBackwardExploration::mark_goal_plateau(RelaxedProposition *subgoal) {
     // NOTE: subgoal can be null if we got here via recursion through
     // a zero-cost action that is relaxed unreachable. (This can only
     // happen in domains which have zero-cost actions to start with.)
@@ -309,41 +335,12 @@ void LandmarkCutLandmarks::mark_goal_plateau(RelaxedProposition *subgoal) {
     }
 }
 
-void LandmarkCutLandmarks::validate_h_max() const {
-#ifndef NDEBUG
-    // Using conditional compilation to avoid complaints about unused
-    // variables when using NDEBUG. This whole code does nothing useful
-    // when assertions are switched off anyway.
-    for (const RelaxedOperator &op : relaxed_operators) {
-        if (op.unsatisfied_preconditions) {
-            bool reachable = true;
-            for (RelaxedProposition *pre : op.preconditions) {
-                if (pre->status == UNREACHED) {
-                    reachable = false;
-                    break;
-                }
-            }
-            assert(!reachable);
-            assert(!op.h_max_supporter);
-        } else {
-            assert(op.h_max_supporter);
-            int h_max_cost = op.h_max_supporter_cost;
-            assert(h_max_cost == op.h_max_supporter->h_max_cost);
-            for (RelaxedProposition *pre : op.preconditions) {
-                assert(pre->status != UNREACHED);
-                assert(pre->h_max_cost <= h_max_cost);
-            }
-        }
-    }
-#endif
-}
-
 bool LandmarkCutLandmarks::compute_landmarks(
     const State &state,
     const CostCallback &cost_callback,
     const LandmarkCallback &landmark_callback
     ) {
-    for (RelaxedOperator &op : relaxed_operators) {
+    for (RelaxedOperator &op : core.relaxed_operators) {
         op.cost = op.base_cost;
     }
     // The following three variables could be declared inside the loop
@@ -355,23 +352,23 @@ bool LandmarkCutLandmarks::compute_landmarks(
     vector<RelaxedProposition *> backward_exploration_queue;
 
     // First forward exploration to compute the h_max values.
-    h_max_exploration(state);
+    heuristic.h_max_exploration(state);
     // validate_h_max();  // too expensive to use even in regular debug mode
 
     // If there are no reachable propositions, we have a dead end.
-    if (artificial_goal.status == UNREACHED)
+    if (core.artificial_goal.status == UNREACHED)
         return true;
 
     // we continue as long as the artificial goal is not reached
-    while (artificial_goal.h_max_cost != 0) {
+    while (core.artificial_goal.h_max_cost != 0) {
         // First we mark the goal zone
-        mark_goal_plateau(&artificial_goal);
+        backward.mark_goal_plateau(&core.artificial_goal);
         assert(cut.empty());
 
         // Backward exploration to find the cut (operators that
         // can reach the goal zone).
         backward_exploration_queue.clear();
-        backward_exploration(state, backward_exploration_queue, cut);
+        backward.backward_exploration(state, backward_exploration_queue, cut);
         assert(!cut.empty());
 
         // here we find the minimum cost of the cut (starting
@@ -400,7 +397,7 @@ bool LandmarkCutLandmarks::compute_landmarks(
         }
 
         // Compute the new h_max values for the next round efficiently.
-        h_max_exploration_incremental(cut);
+        heuristic.h_max_exploration_incremental(cut);
         // validate_h_max();  // too expensive to use even in regular debug mode
         cut.clear();
 
@@ -410,14 +407,14 @@ bool LandmarkCutLandmarks::compute_landmarks(
           or something based on total_cost, so that we don't need a per-round
           reinitialization.
         */
-        for (auto &var_props : propositions) {
+        for (auto &var_props : core.propositions) {
             for (RelaxedProposition &prop : var_props) {
                 if (prop.status == GOAL_ZONE || prop.status == BEFORE_GOAL_ZONE)
                     prop.status = REACHED;
             }
         }
-        artificial_goal.status = REACHED;
-        artificial_precondition.status = REACHED;
+        core.artificial_goal.status = REACHED;
+        core.artificial_precondition.status = REACHED;
     }
     return false;
 }

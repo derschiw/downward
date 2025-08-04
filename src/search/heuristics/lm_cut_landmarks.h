@@ -52,30 +52,59 @@ struct RelaxedProposition {
     int h_max_cost;
 };
 
-class LandmarkCutLandmarks {
+
+class LandmarkCutCore {
+    void build_relaxed_operator(const OperatorProxy &op);
+    void add_relaxed_operator(std::vector<RelaxedProposition *> &&precondition,
+                              std::vector<RelaxedProposition *> &&effects,
+                              int op_id, int base_cost);
+public:
     std::vector<RelaxedOperator> relaxed_operators;
     std::vector<std::vector<RelaxedProposition>> propositions;
     RelaxedProposition artificial_precondition;
     RelaxedProposition artificial_goal;
     int num_propositions;
-    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
-    PreconditionChoiceFunction precondition_choice_function;
-
-    void build_relaxed_operator(const OperatorProxy &op);
-    void add_relaxed_operator(std::vector<RelaxedProposition *> &&precondition,
-                              std::vector<RelaxedProposition *> &&effects,
-                              int op_id, int base_cost);
     RelaxedProposition *get_proposition(const FactProxy &fact);
+
+    LandmarkCutCore(const TaskProxy &task_proxy);
+    LandmarkCutCore() = default;
+};
+
+class LandmarkCutHeuristicExploration {
+protected:
+    LandmarkCutCore &core;
+    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
+
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
     void enqueue_if_necessary(RelaxedProposition *prop, int cost);
+    void validate_h_max() const;
+public:
     void h_max_exploration(const State &state);
     void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
+
+    LandmarkCutHeuristicExploration(LandmarkCutCore &core_ref)
+        : core(core_ref) {}
+};
+
+class LandmarkCutBackwardExploration {
+public:
+    LandmarkCutCore &core;
     void backward_exploration(const State &state,
                               std::vector<RelaxedProposition *> &backward_exploration_queue,
                               std::vector<RelaxedOperator *> &cut);
     void mark_goal_plateau(RelaxedProposition *subgoal);
-    void validate_h_max() const;
+
+    LandmarkCutBackwardExploration(LandmarkCutCore &core_ref)
+        : core(core_ref) {}
+};
+
+
+class LandmarkCutLandmarks {
+    LandmarkCutCore core;
+    LandmarkCutHeuristicExploration heuristic;
+    LandmarkCutBackwardExploration backward;
+    PreconditionChoiceFunction precondition_choice_function;
 
 public:
     using Landmark = std::vector<int>;
@@ -83,7 +112,12 @@ public:
     using LandmarkCallback = std::function<void (const Landmark &, int)>;
 
     LandmarkCutLandmarks(const TaskProxy &task_proxy,
-                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX);
+                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX)
+        : core(task_proxy),
+          heuristic(core),
+          backward(core),
+          precondition_choice_function(pcf_strategy) {}
+
 
     /*
       Compute LM-cut landmarks for the given state.
