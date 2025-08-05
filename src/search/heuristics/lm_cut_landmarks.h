@@ -31,17 +31,18 @@ struct RelaxedOperator {
 
     int cost;
     int unsatisfied_preconditions;
-    int h_max_supporter_cost; // h_max_cost of h_max_supporter
-    RelaxedProposition *h_max_supporter;
+    int heuristic_supporter_cost; // e.g. h_max_cost of heuristic_supporter
+    RelaxedProposition *heuristic_supporter;
     RelaxedOperator(std::vector<RelaxedProposition *> &&pre,
                     std::vector<RelaxedProposition *> &&eff,
                     int op_id, int base)
         : original_op_id(op_id), preconditions(pre), effects(eff), base_cost(base),
-          cost(-1), unsatisfied_preconditions(-1), h_max_supporter_cost(-1),
-          h_max_supporter(nullptr) {
+          cost(-1), unsatisfied_preconditions(-1), heuristic_supporter_cost(-1),
+          heuristic_supporter(nullptr) {
     }
 
     inline void update_h_max_supporter();
+    inline void update_h_add_supporter();
 };
 
 struct RelaxedProposition {
@@ -49,7 +50,7 @@ struct RelaxedProposition {
     std::vector<RelaxedOperator *> effect_of;
 
     PropositionStatus status;
-    int h_max_cost;
+    int heuristic_cost;
 };
 
 
@@ -98,6 +99,22 @@ public:
         : LandmarkCutHeuristicExploration(core_ref) {}
 };
 
+class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
+protected:
+    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
+    void setup_exploration_queue();
+    void setup_exploration_queue_state(const State &state);
+    void enqueue_if_necessary(RelaxedProposition *prop, int cost);
+    void validate_h_max() const;
+
+public:
+    void heuristic_exploration(const State &state) override;
+    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+
+    LandmarkCutHAddExploration(LandmarkCutCore &core_ref)
+        : LandmarkCutHeuristicExploration(core_ref) {}
+};
+
 class LandmarkCutBackwardExploration {
 public:
     LandmarkCutCore &core;
@@ -127,7 +144,7 @@ public:
         : core(task_proxy),
           backward(core),
           precondition_choice_function(pcf_strategy) {
-        heuristic = std::make_unique<LandmarkCutHMaxExploration>(core);
+        heuristic = std::make_unique<LandmarkCutHAddExploration>(core);
     }
 
 
@@ -151,9 +168,16 @@ public:
 inline void RelaxedOperator::update_h_max_supporter() {
     assert(!unsatisfied_preconditions);
     for (size_t i = 0; i < preconditions.size(); ++i)
-        if (preconditions[i]->h_max_cost > h_max_supporter->h_max_cost)
-            h_max_supporter = preconditions[i];
-    h_max_supporter_cost = h_max_supporter->h_max_cost;
+        if (preconditions[i]->heuristic_cost > heuristic_supporter->heuristic_cost)
+            heuristic_supporter = preconditions[i];
+    heuristic_supporter_cost = heuristic_supporter->heuristic_cost;
+}
+inline void RelaxedOperator::update_h_add_supporter() {
+    assert(!unsatisfied_preconditions);
+    int supporter_cost = 0;
+    for (size_t i = 0; i < preconditions.size(); ++i)
+        supporter_cost += preconditions[i]->heuristic_cost;
+    heuristic_supporter_cost = supporter_cost;
 }
 }
 
