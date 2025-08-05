@@ -9,6 +9,16 @@
 using namespace std;
 
 namespace lm_cut_heuristic {
+/*******************************************************
+ * LANDMARK CUT CORE
+ *******************************************************/
+
+/**
+ * @brief Constructor for LandmarkCutCore.
+ *
+ * Initializes the core by building propositions and relaxed operators.
+ * From here the
+ */
 LandmarkCutCore::LandmarkCutCore(const TaskProxy &task_proxy) {
     task_properties::verify_no_axioms(task_proxy);
     task_properties::verify_no_conditional_effects(task_proxy);
@@ -52,6 +62,9 @@ LandmarkCutCore::LandmarkCutCore(const TaskProxy &task_proxy) {
     }
 }
 
+/**
+ * @brief Build a relaxed operator from an OperatorProxy.
+ */
 void LandmarkCutCore::build_relaxed_operator(const OperatorProxy &op) {
     vector<RelaxedProposition *> precondition;
     vector<RelaxedProposition *> effects;
@@ -65,17 +78,22 @@ void LandmarkCutCore::build_relaxed_operator(const OperatorProxy &op) {
         move(precondition), move(effects), op.get_id(), op.get_cost());
 }
 
+/**
+ * @brief Add a relaxed operator to the core.
+ */
 void LandmarkCutCore::add_relaxed_operator(
     vector<RelaxedProposition *> &&precondition,
     vector<RelaxedProposition *> &&effects,
     int op_id, int base_cost) {
-    RelaxedOperator relaxed_op(
-        move(precondition), move(effects), op_id, base_cost);
+    RelaxedOperator relaxed_op(move(precondition), move(effects), op_id, base_cost);
     if (relaxed_op.preconditions.empty())
         relaxed_op.preconditions.push_back(&artificial_precondition);
     relaxed_operators.push_back(relaxed_op);
 }
 
+/**
+ * @brief Get the proposition for a given fact.
+ */
 RelaxedProposition *LandmarkCutCore::get_proposition(
     const FactProxy &fact) {
     int var_id = fact.get_variable().get_id();
@@ -83,7 +101,14 @@ RelaxedProposition *LandmarkCutCore::get_proposition(
     return &propositions[var_id][val];
 }
 
-// heuristic computation
+
+/*******************************************************
+ * HEURISTIC EXPLORATION
+ *******************************************************/
+
+/**
+ * @brief Enqueue a relaxed proposition if necessary.
+ */
 void LandmarkCutHMaxExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
     assert(cost >= 0);
     if (prop->status == UNREACHED || prop->h_max_cost > cost) {
@@ -93,6 +118,9 @@ void LandmarkCutHMaxExploration::enqueue_if_necessary(RelaxedProposition *prop, 
     }
 }
 
+/**
+ * @brief Setup the exploration queue for the first phase.
+ */
 void LandmarkCutHMaxExploration::setup_exploration_queue() {
     priority_queue.clear();
 
@@ -112,6 +140,9 @@ void LandmarkCutHMaxExploration::setup_exploration_queue() {
     }
 }
 
+/**
+ * @brief Setup the exploration queue with the initial state.
+ */
 void LandmarkCutHMaxExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
         enqueue_if_necessary(core.get_proposition(init_fact), 0);
@@ -119,13 +150,14 @@ void LandmarkCutHMaxExploration::setup_exploration_queue_state(const State &stat
     enqueue_if_necessary(&core.artificial_precondition, 0);
 }
 
-/*
-    The first exploration phase is a forward exploration (from init to goal)
-    that computes the h_max values for all propositions reachable from the
-    initial state. It uses a Dijkstra-like algorithm to compute the minimal
-    cost to reach each proposition.
-*/
-
+/**
+ * @brief Perform the first exploration phase.
+ *
+ * The first exploration phase is a forward exploration (from init to goal)
+ * that computes the h_max values for all propositions reachable from the
+ * initial state. It uses a Dijkstra-like algorithm to compute the minimal
+ * cost to reach each proposition.
+ */
 void LandmarkCutHMaxExploration::heuristic_exploration(const State &state) {
     // Initialize (setup)
     assert(priority_queue.empty());
@@ -176,12 +208,13 @@ void LandmarkCutHMaxExploration::heuristic_exploration(const State &state) {
     }
 }
 
-/*
-    Performance optimization for the first exploration phase.
-    Instead of reinitializing the priority queue and redoing the
-    first exploration, we can incrementally update the h_max values
-    based on the cut operators found in the previous round.
-*/
+/**
+ * @brief Performance optimization for the first exploration phase.
+ *
+ * Instead of reinitializing the priority queue and redoing the
+ * first exploration, we can incrementally update the h_max values
+ * based on the cut operators found in the previous round.
+ */
 void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
     vector<RelaxedOperator *> &cut) {
     assert(priority_queue.empty());
@@ -225,6 +258,9 @@ void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
     }
 }
 
+/**
+ * @brief Validate the h_max values.
+ */
 void LandmarkCutHMaxExploration::validate_h_max() const {
 #ifndef NDEBUG
     // Using conditional compilation to avoid complaints about unused
@@ -255,20 +291,26 @@ void LandmarkCutHMaxExploration::validate_h_max() const {
 }
 
 
-/*
-    The second exploration phase is a backward exploration (from init to goal)
-    that identifies the cut operators that can reach the goal zone (i.e.,
-    the operators that must be applied to reach the goal zone).
+/*******************************************************
+ * BACKWARD EXPLORATION
+ *******************************************************/
 
-    Sidenote: Backwards here means that we know the goal zone and
-    ask which operators can reach it. (Instead of asking what we can
-    reach given the initial state(s).)
+/**
+ * @brief Perform the backward exploration.
+ *
+ * The second exploration phase is a backward exploration (from init to goal)
+ * that identifies the cut operators that can reach the goal zone (i.e.,
+ * the operators that must be applied to reach the goal zone).
 
-    [Initial State] ---> [Cut Operators] ---> [Goal Zone] ---> [Goals]
-        ^                      ^                  ^
-        |                      |                  |
-    Start here         Find these        Already known
-*/
+ * Sidenote: Backwards here means that we know the goal zone and
+ * ask which operators can reach it. (Instead of asking what we can
+ * reach given the initial state(s).)
+ *
+ * [Initial State] ---> [Cut Operators] ---> [Goal Zone] ---> [Goals]
+ *     ^                      ^                  ^
+ *     |                      |                  |
+ * Start here         Find these        Already known
+ */
 void LandmarkCutBackwardExploration::backward_exploration(
     const State &state, vector<RelaxedProposition *> &backward_exploration_queue,
     vector<RelaxedOperator *> &cut) {
@@ -322,6 +364,12 @@ void LandmarkCutBackwardExploration::backward_exploration(
     }
 }
 
+/**
+ * @brief Mark the goal plateau.
+ *
+ * The goal plateau is the set of propositions that can be reached
+ * from the goal using zero-cost actions.
+ */
 void LandmarkCutBackwardExploration::mark_goal_plateau(RelaxedProposition *subgoal) {
     // NOTE: subgoal can be null if we got here via recursion through
     // a zero-cost action that is relaxed unreachable. (This can only
@@ -335,6 +383,16 @@ void LandmarkCutBackwardExploration::mark_goal_plateau(RelaxedProposition *subgo
     }
 }
 
+/*******************************************************
+ * LANDMARK CUT LANDMARKS
+ *******************************************************/
+
+/**
+ * @brief Constructor for LandmarkCutLandmarks.
+ *
+ * Initializes the core, backward exploration, and heuristic exploration.
+ * The precondition choice function is set based on the provided strategy.
+ */
 bool LandmarkCutLandmarks::compute_landmarks(
     const State &state,
     const CostCallback &cost_callback,
