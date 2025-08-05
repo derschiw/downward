@@ -84,7 +84,7 @@ RelaxedProposition *LandmarkCutCore::get_proposition(
 }
 
 // heuristic computation
-void LandmarkCutHeuristicExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
+void LandmarkCutHMaxExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
     assert(cost >= 0);
     if (prop->status == UNREACHED || prop->h_max_cost > cost) {
         prop->status = REACHED;
@@ -93,7 +93,7 @@ void LandmarkCutHeuristicExploration::enqueue_if_necessary(RelaxedProposition *p
     }
 }
 
-void LandmarkCutHeuristicExploration::setup_exploration_queue() {
+void LandmarkCutHMaxExploration::setup_exploration_queue() {
     priority_queue.clear();
 
     for (auto &var_props : core.propositions) {
@@ -112,7 +112,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     }
 }
 
-void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State &state) {
+void LandmarkCutHMaxExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
         enqueue_if_necessary(core.get_proposition(init_fact), 0);
     }
@@ -126,7 +126,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State 
     cost to reach each proposition.
 */
 
-void LandmarkCutHeuristicExploration::h_max_exploration(const State &state) {
+void LandmarkCutHMaxExploration::heuristic_exploration(const State &state) {
     // Initialize (setup)
     assert(priority_queue.empty());
     setup_exploration_queue();
@@ -182,7 +182,7 @@ void LandmarkCutHeuristicExploration::h_max_exploration(const State &state) {
     first exploration, we can incrementally update the h_max values
     based on the cut operators found in the previous round.
 */
-void LandmarkCutHeuristicExploration::h_max_exploration_incremental(
+void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
     vector<RelaxedOperator *> &cut) {
     assert(priority_queue.empty());
     /* We pretend that this queue has had as many pushes already as we
@@ -225,7 +225,7 @@ void LandmarkCutHeuristicExploration::h_max_exploration_incremental(
     }
 }
 
-void LandmarkCutHeuristicExploration::validate_h_max() const {
+void LandmarkCutHMaxExploration::validate_h_max() const {
 #ifndef NDEBUG
     // Using conditional compilation to avoid complaints about unused
     // variables when using NDEBUG. This whole code does nothing useful
@@ -352,7 +352,7 @@ bool LandmarkCutLandmarks::compute_landmarks(
     vector<RelaxedProposition *> backward_exploration_queue;
 
     // First forward exploration to compute the h_max values.
-    heuristic.h_max_exploration(state);
+    heuristic->heuristic_exploration(state);
     // validate_h_max();  // too expensive to use even in regular debug mode
 
     // If there are no reachable propositions, we have a dead end.
@@ -397,7 +397,7 @@ bool LandmarkCutLandmarks::compute_landmarks(
         }
 
         // Compute the new h_max values for the next round efficiently.
-        heuristic.h_max_exploration_incremental(cut);
+        heuristic->heuristic_exploration_incremental(cut);
         // validate_h_max();  // too expensive to use even in regular debug mode
         cut.clear();
 

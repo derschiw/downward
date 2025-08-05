@@ -73,18 +73,29 @@ public:
 class LandmarkCutHeuristicExploration {
 protected:
     LandmarkCutCore &core;
-    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
+public:
+    virtual void heuristic_exploration(const State &state) = 0;
+    virtual void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) = 0;
 
+    virtual ~LandmarkCutHeuristicExploration() = default;
+    LandmarkCutHeuristicExploration(LandmarkCutCore &core_ref)
+        : core(core_ref) {}
+};
+
+class LandmarkCutHMaxExploration : public LandmarkCutHeuristicExploration {
+protected:
+    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
     void enqueue_if_necessary(RelaxedProposition *prop, int cost);
     void validate_h_max() const;
-public:
-    void h_max_exploration(const State &state);
-    void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
 
-    LandmarkCutHeuristicExploration(LandmarkCutCore &core_ref)
-        : core(core_ref) {}
+public:
+    void heuristic_exploration(const State &state) override;
+    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+
+    LandmarkCutHMaxExploration(LandmarkCutCore &core_ref)
+        : LandmarkCutHeuristicExploration(core_ref) {}
 };
 
 class LandmarkCutBackwardExploration {
@@ -102,7 +113,7 @@ public:
 
 class LandmarkCutLandmarks {
     LandmarkCutCore core;
-    LandmarkCutHeuristicExploration heuristic;
+    std::unique_ptr<LandmarkCutHeuristicExploration> heuristic;
     LandmarkCutBackwardExploration backward;
     PreconditionChoiceFunction precondition_choice_function;
 
@@ -114,9 +125,10 @@ public:
     LandmarkCutLandmarks(const TaskProxy &task_proxy,
                          const PCFStrategy &pcf_strategy = PCFStrategy::HMAX)
         : core(task_proxy),
-          heuristic(core),
           backward(core),
-          precondition_choice_function(pcf_strategy) {}
+          precondition_choice_function(pcf_strategy) {
+        heuristic = std::make_unique<LandmarkCutHMaxExploration>(core);
+    }
 
 
     /*
