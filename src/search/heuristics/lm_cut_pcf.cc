@@ -1,4 +1,5 @@
 #include "lm_cut_pcf.h"
+#include "lm_cut_landmarks.h"
 
 #include "../utils/logging.h"
 #include "../utils/system.h"
@@ -10,6 +11,16 @@ PreconditionChoiceFunction::PreconditionChoiceFunction(
     const PCFStrategy &pcf_strategy) :
     pcf_strategy(pcf_strategy) {
     utils::g_log << "PCF Strategy: " << pcf_strategy << endl;
+}
+
+std::unique_ptr<LandmarkCutHeuristicExploration> PreconditionChoiceFunction::get_heuristic_exploration(LandmarkCutCore &core) {
+    if (pcf_strategy == PCFStrategy::HMAX) {
+        return std::make_unique<LandmarkCutHMaxExploration>(core);
+    } else if (pcf_strategy == PCFStrategy::HADD) {
+        return std::make_unique<LandmarkCutHAddExploration>(core);
+    } else {
+        throw std::runtime_error("Unsupported PCF strategy");
+    }
 }
 
 ostream &operator<<(ostream &os, const PCFStrategy &pcf) {

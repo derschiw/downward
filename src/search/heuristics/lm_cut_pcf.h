@@ -4,6 +4,9 @@
 #include <iostream>
 
 namespace lm_cut_heuristic {
+class LandmarkCutCore;
+class LandmarkCutHeuristicExploration;
+
 enum class PCFStrategy {
     HMAX,
     HADD,
@@ -14,6 +17,7 @@ class PreconditionChoiceFunction {
 protected:
     PCFStrategy pcf_strategy;
 public:
+    std::unique_ptr<LandmarkCutHeuristicExploration> get_heuristic_exploration(LandmarkCutCore &core);
     PreconditionChoiceFunction(const PCFStrategy &pcf_strategy);
 };
 

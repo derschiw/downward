@@ -144,7 +144,7 @@ public:
         : core(task_proxy),
           backward(core),
           precondition_choice_function(pcf_strategy) {
-        heuristic = std::make_unique<LandmarkCutHAddExploration>(core);
+        heuristic = precondition_choice_function.get_heuristic_exploration(core);
     }
 
 
