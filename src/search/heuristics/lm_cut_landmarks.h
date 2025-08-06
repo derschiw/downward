@@ -175,8 +175,17 @@ inline void RelaxedOperator::update_h_max_supporter() {
 inline void RelaxedOperator::update_h_add_supporter() {
     assert(!unsatisfied_preconditions);
     int supporter_cost = 0;
-    for (size_t i = 0; i < preconditions.size(); ++i)
+    int max_cost = -1;
+    for (size_t i = 0; i < preconditions.size(); ++i) {
+        // We dont acutally "need" a single supporter in h-add, but
+        // when we create the justification graph, we still need to
+        // know the supporter with the highest h_add cost.
+        if (preconditions[i]->heuristic_cost > max_cost) {
+            max_cost = preconditions[i]->heuristic_cost;
+            heuristic_supporter = preconditions[i];
+        }
         supporter_cost += preconditions[i]->heuristic_cost;
+    }
     heuristic_supporter_cost = supporter_cost;
 }
 }

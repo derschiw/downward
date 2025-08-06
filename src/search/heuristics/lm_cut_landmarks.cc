@@ -564,6 +564,12 @@ bool LandmarkCutLandmarks::compute_landmarks(
 
     // we continue as long as the artificial goal is not reached
     while (core.artificial_goal.heuristic_cost != 0) {
+        // Here we would first calculate the justification graph,
+        // for the current problem. We do not need this here, as we
+        // store the heuristic_supporter in the relaxed operators.
+        // This essentially is the justification graph, but
+        // without the need to compute it explicitly.
+
         // First we mark the goal zone
         backward.mark_goal_plateau(&core.artificial_goal);
         assert(cut.empty());
