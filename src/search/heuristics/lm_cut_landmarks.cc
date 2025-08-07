@@ -109,7 +109,7 @@ RelaxedProposition *LandmarkCutCore::get_proposition(
 /**
  * @brief Setup the exploration queue for the first phase.
  */
-void LandmarkCutHMaxExploration::setup_exploration_queue() {
+void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     priority_queue.clear();
 
     for (auto &var_props : core.propositions) {
@@ -131,7 +131,7 @@ void LandmarkCutHMaxExploration::setup_exploration_queue() {
 /**
  * @brief Setup the exploration queue with the initial state.
  */
-void LandmarkCutHMaxExploration::setup_exploration_queue_state(const State &state) {
+void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
         enqueue_if_necessary(core.get_proposition(init_fact), 0);
     }
@@ -141,7 +141,7 @@ void LandmarkCutHMaxExploration::setup_exploration_queue_state(const State &stat
 /**
  * @brief Enqueue a relaxed proposition if necessary.
  */
-void LandmarkCutHMaxExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
+void LandmarkCutHeuristicExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
     assert(cost >= 0);
     if (prop->status == UNREACHED || prop->heuristic_cost > cost) {
         prop->status = REACHED;
@@ -282,48 +282,6 @@ void LandmarkCutHMaxExploration::validate_h_max() const {
         }
     }
 #endif
-}
-
-/**
- * @brief Setup the exploration queue for the first phase.
- */
-void LandmarkCutHAddExploration::setup_exploration_queue() {
-    priority_queue.clear();
-
-    for (auto &var_props : core.propositions) {
-        for (RelaxedProposition &prop : var_props) {
-            prop.status = UNREACHED;
-        }
-    }
-
-    core.artificial_goal.status = UNREACHED;
-    core.artificial_precondition.status = UNREACHED;
-
-    for (RelaxedOperator &op : core.relaxed_operators) {
-        op.unsatisfied_preconditions = op.preconditions.size();
-    }
-}
-
-/**
- * @brief Setup the exploration queue with the initial state.
- */
-void LandmarkCutHAddExploration::setup_exploration_queue_state(const State &state) {
-    for (FactProxy init_fact : state) {
-        enqueue_if_necessary(core.get_proposition(init_fact), 0);
-    }
-    enqueue_if_necessary(&core.artificial_precondition, 0);
-}
-
-/**
- * @brief Enqueue a relaxed proposition if necessary.
- */
-void LandmarkCutHAddExploration::enqueue_if_necessary(RelaxedProposition *prop, int cost) {
-    assert(cost >= 0);
-    if (prop->status == UNREACHED || prop->heuristic_cost > cost) {
-        prop->status = REACHED;
-        prop->heuristic_cost = cost;
-        priority_queue.push(cost, prop);
-    }
 }
 
 /**

@@ -73,8 +73,12 @@ public:
 
 class LandmarkCutHeuristicExploration {
 protected:
+    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
     LandmarkCutCore &core;
 public:
+    void setup_exploration_queue();
+    void setup_exploration_queue_state(const State &state);
+    void enqueue_if_necessary(RelaxedProposition *prop, int cost);
     virtual void heuristic_exploration(const State &state) = 0;
     virtual void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) = 0;
 
@@ -85,10 +89,6 @@ public:
 
 class LandmarkCutHMaxExploration : public LandmarkCutHeuristicExploration {
 protected:
-    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
-    void setup_exploration_queue();
-    void setup_exploration_queue_state(const State &state);
-    void enqueue_if_necessary(RelaxedProposition *prop, int cost);
     void validate_h_max() const;
 
 public:
@@ -101,11 +101,7 @@ public:
 
 class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
 protected:
-    priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
-    void setup_exploration_queue();
-    void setup_exploration_queue_state(const State &state);
-    void enqueue_if_necessary(RelaxedProposition *prop, int cost);
-    void validate_h_max() const;
+    void validate_h_add() const;
 
 public:
     void heuristic_exploration(const State &state) override;
