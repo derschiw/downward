@@ -237,7 +237,7 @@ void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
             if (relaxed_op->heuristic_supporter == prop) {
                 int old_supp_cost = relaxed_op->heuristic_supporter_cost;
                 if (old_supp_cost > prop_cost) {
-                    relaxed_op->update_h_max_supporter();
+                    update_supporters(*relaxed_op);
                     int new_supp_cost = relaxed_op->heuristic_supporter_cost;
                     if (new_supp_cost != old_supp_cost) {
                         // This operator has become cheaper.
@@ -250,6 +250,20 @@ void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
             }
         }
     }
+}
+
+/**
+ * @brief Update the h_max supporters for all operators.
+ *
+ * This function updates the heuristic supporters for all operators
+ * based on the current state of the propositions.
+ */
+void LandmarkCutHMaxExploration::update_supporters(RelaxedOperator &op) const {
+    assert(!op.unsatisfied_preconditions);
+    for (size_t i = 0; i < op.preconditions.size(); ++i)
+        if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
+            op.heuristic_supporter = op.preconditions[i];
+    op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
 }
 
 /**
@@ -322,7 +336,7 @@ void LandmarkCutHAddExploration::heuristic_exploration(const State &state) {
             if (relaxed_op->unsatisfied_preconditions == 0) {
                 // In h_add, we do not use the heuristic_supporter,
                 // but we still need to update the heuristic_supporter_cost.
-                relaxed_op->update_h_add_supporter();
+                update_supporters(*relaxed_op);
 
                 // Sum the costs of the preconditions and add the cost of the operator.
                 int target_cost = relaxed_op->heuristic_supporter_cost + relaxed_op->cost;
@@ -377,7 +391,7 @@ void LandmarkCutHAddExploration::heuristic_exploration_incremental(
             // In h_add, it is always the case that we have to update the cost.
 
             int old_supp_cost = relaxed_op->heuristic_supporter_cost;
-            relaxed_op->update_h_add_supporter();
+            update_supporters(*relaxed_op);
 
             // In contrast to h_max, we cannot first check if the supporter cost
             // has changed, as there is no single supporter. So instead we check
@@ -391,6 +405,29 @@ void LandmarkCutHAddExploration::heuristic_exploration_incremental(
             }
         }
     }
+}
+
+/**
+ * @brief Update the h_add supporters for all operators.
+ *
+ * This function updates the heuristic supporters for all operators
+ * based on the current state of the propositions.
+ */
+void LandmarkCutHAddExploration::update_supporters(RelaxedOperator &op) const {
+    assert(!op.unsatisfied_preconditions);
+    int supporter_cost = 0;
+    int max_cost = -1;
+    for (size_t i = 0; i < op.preconditions.size(); ++i) {
+        // We dont actually "need" a single supporter in h-add, but
+        // when we create the justification graph, we still need to
+        // know the supporter with the highest h_add cost.
+        if (op.preconditions[i]->heuristic_cost > max_cost) {
+            max_cost = op.preconditions[i]->heuristic_cost;
+            op.heuristic_supporter = op.preconditions[i];
+        }
+        supporter_cost += op.preconditions[i]->heuristic_cost;
+    }
+    op.heuristic_supporter_cost = supporter_cost;
 }
 
 /**

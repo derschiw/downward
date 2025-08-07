@@ -40,9 +40,6 @@ struct RelaxedOperator {
           cost(-1), unsatisfied_preconditions(-1), heuristic_supporter_cost(-1),
           heuristic_supporter(nullptr) {
     }
-
-    inline void update_h_max_supporter();
-    inline void update_h_add_supporter();
 };
 
 struct RelaxedProposition {
@@ -75,6 +72,7 @@ class LandmarkCutHeuristicExploration {
 protected:
     priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
     LandmarkCutCore &core;
+    virtual void update_supporters(RelaxedOperator &op) const = 0;
 
 public:
     void setup_exploration_queue();
@@ -91,7 +89,7 @@ public:
 
 class LandmarkCutHMaxExploration : public LandmarkCutHeuristicExploration {
 protected:
-
+    void update_supporters(RelaxedOperator &op) const override;
 public:
     void heuristic_exploration(const State &state) override;
     void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
@@ -103,13 +101,23 @@ public:
 
 class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
 protected:
-
+    void update_supporters(RelaxedOperator &op) const override;
 public:
     void heuristic_exploration(const State &state) override;
     void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
     void validate() const override;
 
     LandmarkCutHAddExploration(LandmarkCutCore &core_ref)
+        : LandmarkCutHeuristicExploration(core_ref) {}
+};
+
+class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
+public:
+    void heuristic_exploration(const State &state) override;
+    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+    void validate() const override;
+
+    LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
         : LandmarkCutHeuristicExploration(core_ref) {}
 };
 
@@ -162,30 +170,6 @@ public:
     bool compute_landmarks(const State &state, const CostCallback &cost_callback,
                            const LandmarkCallback &landmark_callback);
 };
-
-inline void RelaxedOperator::update_h_max_supporter() {
-    assert(!unsatisfied_preconditions);
-    for (size_t i = 0; i < preconditions.size(); ++i)
-        if (preconditions[i]->heuristic_cost > heuristic_supporter->heuristic_cost)
-            heuristic_supporter = preconditions[i];
-    heuristic_supporter_cost = heuristic_supporter->heuristic_cost;
-}
-inline void RelaxedOperator::update_h_add_supporter() {
-    assert(!unsatisfied_preconditions);
-    int supporter_cost = 0;
-    int max_cost = -1;
-    for (size_t i = 0; i < preconditions.size(); ++i) {
-        // We dont acutally "need" a single supporter in h-add, but
-        // when we create the justification graph, we still need to
-        // know the supporter with the highest h_add cost.
-        if (preconditions[i]->heuristic_cost > max_cost) {
-            max_cost = preconditions[i]->heuristic_cost;
-            heuristic_supporter = preconditions[i];
-        }
-        supporter_cost += preconditions[i]->heuristic_cost;
-    }
-    heuristic_supporter_cost = supporter_cost;
-}
 }
 
 #endif
