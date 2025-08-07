@@ -255,7 +255,7 @@ void LandmarkCutHMaxExploration::heuristic_exploration_incremental(
 /**
  * @brief Validate the h_max values.
  */
-void LandmarkCutHMaxExploration::validate_h_max() const {
+void LandmarkCutHMaxExploration::validate() const {
 #ifndef NDEBUG
     // Using conditional compilation to avoid complaints about unused
     // variables when using NDEBUG. This whole code does nothing useful
@@ -393,6 +393,37 @@ void LandmarkCutHAddExploration::heuristic_exploration_incremental(
     }
 }
 
+/**
+ * @brief Validate the h_add values.
+ */
+void LandmarkCutHAddExploration::validate() const {
+#ifndef NDEBUG
+    // Using conditional compilation to avoid complaints about unused
+    // variables when using NDEBUG. This whole code does nothing useful
+    // when assertions are switched off anyway.
+    for (const RelaxedOperator &op : core.relaxed_operators) {
+        if (op.unsatisfied_preconditions) {
+            bool reachable = true;
+            for (RelaxedProposition *pre : op.preconditions) {
+                if (pre->status == UNREACHED) {
+                    reachable = false;
+                    break;
+                }
+            }
+            assert(!reachable);
+            assert(!op.heuristic_supporter);
+        } else {
+            assert(op.heuristic_supporter);
+            int heuristic_cost = op.heuristic_supporter_cost;
+            assert(heuristic_cost >= op.heuristic_supporter->heuristic_cost);
+            for (RelaxedProposition *pre : op.preconditions) {
+                assert(pre->status != UNREACHED);
+                assert(pre->heuristic_cost <= heuristic_cost);
+            }
+        }
+    }
+#endif
+}
 
 /*******************************************************
  * BACKWARD EXPLORATION
@@ -563,9 +594,9 @@ bool LandmarkCutLandmarks::compute_landmarks(
             landmark_callback(landmark, cut_cost);
         }
 
-        // Compute the new h_max values for the next round efficiently.
+        // Compute the new heuristic values for the next round efficiently.
         heuristic->heuristic_exploration_incremental(cut);
-        // validate_h_max();  // too expensive to use even in regular debug mode
+        // heuristic->validate();  // too expensive to use even in regular debug mode
         cut.clear();
 
         /*
