@@ -600,26 +600,26 @@ void LandmarkCutRandomExploration::validate() const {
  *     |                      |                  |
  * Start here         Find these        Already known
  */
-void LandmarkCutBackwardExploration::backward_exploration(
-    const State &state, vector<RelaxedProposition *> &backward_exploration_queue,
+void LandmarkCutBackwardExploration::cut_computation(
+    const State &state, vector<RelaxedProposition *> &cut_computation_queue,
     vector<RelaxedOperator *> &cut) {
-    assert(backward_exploration_queue.empty());
+    assert(cut_computation_queue.empty());
     assert(cut.empty());
 
     // The artificial preconditions is a dummy proposition, that
     // connects all initial facts.
     core.artificial_precondition.status = BEFORE_GOAL_ZONE;
-    backward_exploration_queue.push_back(&core.artificial_precondition);
+    cut_computation_queue.push_back(&core.artificial_precondition);
 
     for (FactProxy init_fact : state) {
         RelaxedProposition *init_prop = core.get_proposition(init_fact);
         init_prop->status = BEFORE_GOAL_ZONE;
-        backward_exploration_queue.push_back(init_prop);
+        cut_computation_queue.push_back(init_prop);
     }
 
-    while (!backward_exploration_queue.empty()) {
-        RelaxedProposition *prop = backward_exploration_queue.back();
-        backward_exploration_queue.pop_back();
+    while (!cut_computation_queue.empty()) {
+        RelaxedProposition *prop = cut_computation_queue.back();
+        cut_computation_queue.pop_back();
         const vector<RelaxedOperator *> &triggered_operators =
             prop->precondition_of;
         for (RelaxedOperator *relaxed_op : triggered_operators) {
@@ -646,7 +646,7 @@ void LandmarkCutBackwardExploration::backward_exploration(
                         if (effect->status != BEFORE_GOAL_ZONE) {
                             assert(effect->status == REACHED);
                             effect->status = BEFORE_GOAL_ZONE;
-                            backward_exploration_queue.push_back(effect);
+                            cut_computation_queue.push_back(effect);
                         }
                     }
                 }
@@ -693,12 +693,12 @@ bool LandmarkCutLandmarks::compute_landmarks(
         op.cost = op.base_cost;
     }
     // The following three variables could be declared inside the loop
-    // ("backward_exploration_queue" even inside backward_exploration),
+    // ("cut_computation_queue" even inside cut_computation),
     // but having them here saves reallocations and hence provides a
     // measurable speed boost.
     vector<RelaxedOperator *> cut;
     Landmark landmark;
-    vector<RelaxedProposition *> backward_exploration_queue;
+    vector<RelaxedProposition *> cut_computation_queue;
 
     // First forward exploration to compute the h_max values.
     heuristic->heuristic_exploration(state);
@@ -722,8 +722,8 @@ bool LandmarkCutLandmarks::compute_landmarks(
 
         // Backward exploration to find the cut (operators that
         // can reach the goal zone).
-        backward_exploration_queue.clear();
-        backward.backward_exploration(state, backward_exploration_queue, cut);
+        cut_computation_queue.clear();
+        backward.cut_computation(state, cut_computation_queue, cut);
         assert(!cut.empty());
 
         // here we find the minimum cost of the cut (starting

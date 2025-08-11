@@ -129,9 +129,9 @@ public:
 class LandmarkCutBackwardExploration {
 public:
     LandmarkCutCore &core;
-    void backward_exploration(const State &state,
-                              std::vector<RelaxedProposition *> &backward_exploration_queue,
-                              std::vector<RelaxedOperator *> &cut);
+    void cut_computation(const State &state,
+                         std::vector<RelaxedProposition *> &cut_computation_queue,
+                         std::vector<RelaxedOperator *> &cut);
     void mark_goal_plateau(RelaxedProposition *subgoal);
 
     LandmarkCutBackwardExploration(LandmarkCutCore &core_ref)
