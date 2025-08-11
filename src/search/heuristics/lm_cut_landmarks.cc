@@ -175,7 +175,7 @@ void LandmarkCutHeuristicExploration::heuristic_exploration(const State &state) 
         // Examine all operators having this proposition as a
         // precondition.
         for (RelaxedOperator *relaxed_op : triggered_operators) {
-            heuristic_exploration_core(relaxed_op, prop);
+            trigger_operators(relaxed_op, prop);
         }
     }
 }
@@ -211,7 +211,7 @@ void LandmarkCutHeuristicExploration::heuristic_exploration_incremental(vector<R
         // Examine all operators having this proposition as a
         // precondition.
         for (RelaxedOperator *relaxed_op : triggered_operators) {
-            heuristic_exploration_incremental_core(relaxed_op, prop);
+            trigger_operators_incremental(relaxed_op, prop);
         }
     }
 }
@@ -224,7 +224,7 @@ void LandmarkCutHeuristicExploration::heuristic_exploration_incremental(vector<R
  * initial state. It uses a Dijkstra-like algorithm to compute the minimal
  * cost to reach each proposition.
  */
-void LandmarkCutHMaxExploration::heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHMaxExploration::trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     // we now have one unsatisfied precondition less
     --relaxed_op->unsatisfied_preconditions;
     // we cannot have less than 0 unsatisfied preconditions
@@ -252,7 +252,7 @@ void LandmarkCutHMaxExploration::heuristic_exploration_core(RelaxedOperator *rel
  * first exploration, we can incrementally update the h_max values
  * based on the cut operators found in the previous round.
  */
-void LandmarkCutHMaxExploration::heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHMaxExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     if (relaxed_op->heuristic_supporter == prop) {
         int old_supp_cost = relaxed_op->heuristic_supporter_cost;
         if (old_supp_cost > prop->heuristic_cost) {
@@ -323,7 +323,7 @@ void LandmarkCutHMaxExploration::validate() const {
  * initial state. It uses a Dijkstra-like algorithm to compute the minimal
  * cost to reach each proposition.
  */
-void LandmarkCutHAddExploration::heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHAddExploration::trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     // we now have one unsatisfied precondition less
     --relaxed_op->unsatisfied_preconditions;
     // we cannot have less than 0 unsatisfied preconditions
@@ -349,7 +349,7 @@ void LandmarkCutHAddExploration::heuristic_exploration_core(RelaxedOperator *rel
  * first exploration, we can incrementally update the h_add values
  * based on the cut operators found in the previous round.
  */
-void LandmarkCutHAddExploration::heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHAddExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     int old_supp_cost = relaxed_op->heuristic_supporter_cost;
     update_supporters(*relaxed_op);
 
@@ -425,7 +425,7 @@ void LandmarkCutHAddExploration::validate() const {
 /**
  * @brief Perform the first exploration phase.
  */
-void LandmarkCutRandomExploration::heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutRandomExploration::trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     // we now have one unsatisfied precondition less
     --relaxed_op->unsatisfied_preconditions;
     // we cannot have less than 0 unsatisfied preconditions
@@ -448,7 +448,7 @@ void LandmarkCutRandomExploration::heuristic_exploration_core(RelaxedOperator *r
 /**
  * @brief Performance optimization for the first exploration phase.
  */
-void LandmarkCutRandomExploration::heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutRandomExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     int old_supp_cost = relaxed_op->heuristic_supporter_cost;
     update_supporters(*relaxed_op);
 
