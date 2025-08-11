@@ -78,9 +78,11 @@ protected:
 public:
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
+    void heuristic_exploration(const State &state);
+    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut);
     void enqueue_if_necessary(RelaxedProposition *prop, int cost);
-    virtual void heuristic_exploration(const State &state) = 0;
-    virtual void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) = 0;
+    virtual void heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) = 0;
+    virtual void heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) = 0;
     virtual void validate() const = 0;
 
     virtual ~LandmarkCutHeuristicExploration() = default;
@@ -92,8 +94,8 @@ class LandmarkCutHMaxExploration : public LandmarkCutHeuristicExploration {
 protected:
     void update_supporters(RelaxedOperator &op) const override;
 public:
-    void heuristic_exploration(const State &state) override;
-    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+    void heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
 
     void validate() const override;
     LandmarkCutHMaxExploration(LandmarkCutCore &core_ref)
@@ -104,8 +106,8 @@ class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
 protected:
     void update_supporters(RelaxedOperator &op) const override;
 public:
-    void heuristic_exploration(const State &state) override;
-    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+    void heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutHAddExploration(LandmarkCutCore &core_ref)
@@ -118,8 +120,8 @@ class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
 protected:
     void update_supporters(RelaxedOperator &op) const override;
 public:
-    void heuristic_exploration(const State &state) override;
-    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
+    void heuristic_exploration_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void heuristic_exploration_incremental_core(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
