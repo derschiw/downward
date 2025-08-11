@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <random>
 
 
 namespace lm_cut_heuristic {
@@ -112,13 +113,17 @@ public:
 };
 
 class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
+    mutable std::mt19937 rd_generator;
+
+protected:
+    void update_supporters(RelaxedOperator &op) const override;
 public:
     void heuristic_exploration(const State &state) override;
     void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut) override;
     void validate() const override;
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
-        : LandmarkCutHeuristicExploration(core_ref) {}
+        : LandmarkCutHeuristicExploration(core_ref), rd_generator(std::random_device{}()) {}
 };
 
 class LandmarkCutBackwardExploration {

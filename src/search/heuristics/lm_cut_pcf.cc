@@ -18,6 +18,8 @@ std::unique_ptr<LandmarkCutHeuristicExploration> PreconditionChoiceFunction::get
         return std::make_unique<LandmarkCutHMaxExploration>(core);
     } else if (pcf_strategy == PCFStrategy::HADD) {
         return std::make_unique<LandmarkCutHAddExploration>(core);
+    } else if (pcf_strategy == PCFStrategy::RANDOM) {
+        return std::make_unique<LandmarkCutRandomExploration>(core);
     } else {
         throw std::runtime_error("Unsupported PCF strategy");
     }
