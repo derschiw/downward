@@ -12,7 +12,7 @@ enum class PCFStrategy {
     HMAX,
     HADD,
     RANDOM,
-    EGREEDY,
+    HMAXTIE,
 };
 
 class PreconditionChoiceFunction {
