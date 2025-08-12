@@ -30,6 +30,7 @@ struct RelaxedOperator {
     std::vector<RelaxedProposition *> effects;
     int base_cost; // 0 for axioms, 1 for regular operators
 
+    int count = 0;
     int cost;
     int unsatisfied_preconditions;
     int heuristic_supporter_cost; // e.g. h_max_cost of heuristic_supporter
@@ -49,6 +50,7 @@ struct RelaxedProposition {
 
     PropositionStatus status;
     int heuristic_cost;
+    int count = 0;
 };
 
 
@@ -64,6 +66,33 @@ public:
     RelaxedProposition artificial_goal;
     int num_propositions;
     RelaxedProposition *get_proposition(const FactProxy &fact);
+
+    void print() const {
+        std::cout << "LandmarkCutCore with " << relaxed_operators.size()
+                  << " operators and " << num_propositions << " propositions." << std::endl;
+        for (const auto &var_props : propositions) {
+            for (const RelaxedProposition &prop : var_props) {
+                std::cout << "Proposition: " << prop.heuristic_cost
+                          << ", status: " << prop.status
+                          << ", count: " << prop.count << std::endl;
+            }
+        }
+
+        for (const RelaxedOperator &op : relaxed_operators) {
+            std::cout << "Operator ID: " << op.original_op_id
+                      << ", base cost: " << op.base_cost
+                      << ", cost: " << op.cost
+                      << ", unsatisfied preconditions: " << op.unsatisfied_preconditions
+                      << ", heuristic supporter cost: " << op.heuristic_supporter_cost
+                      << ", count: " << op.count << std::endl;
+            for (RelaxedProposition *pre : op.preconditions) {
+                std::cout << "  Precondition: " << pre
+                          << ", status: " << pre->status
+                          << ", count: " << pre->count
+                          << ", h_cost: " << pre->heuristic_cost << std::endl;
+            }
+        }
+    }
 
     LandmarkCutCore(const TaskProxy &task_proxy);
     LandmarkCutCore() = default;
@@ -126,6 +155,22 @@ public:
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
         : LandmarkCutHeuristicExploration(core_ref), rd_generator(std::random_device{}()) {}
+};
+
+class LandmarkCutEGreedyExploration : public LandmarkCutHeuristicExploration {
+    float epsilon = 0.8f;
+    mutable std::mt19937 rd_generator;
+
+protected:
+    void update_supporters(RelaxedOperator &op) const override;
+public:
+    void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void validate() const override;
+
+    LandmarkCutEGreedyExploration(LandmarkCutCore &core_ref)
+        : LandmarkCutHeuristicExploration(core_ref), rd_generator(std::random_device{}()) {
+    }
 };
 
 class LandmarkCutBackwardExploration {
