@@ -10,7 +10,8 @@ class LandmarkCutHeuristicExploration;
 enum class PCFStrategy {
     HMAX,
     HADD,
-    RANDOM
+    RANDOM,
+    EGREEDY,
 };
 
 class PreconditionChoiceFunction {
