@@ -115,6 +115,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     for (auto &var_props : core.propositions) {
         for (RelaxedProposition &prop : var_props) {
             prop.status = UNREACHED;
+            prop.used = 0;
         }
     }
 
@@ -281,7 +282,6 @@ void LandmarkCutHMaxExploration::update_supporters(RelaxedOperator &op) const {
         if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
             op.heuristic_supporter = op.preconditions[i];
     op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
-    op.heuristic_supporter->count++;
 }
 
 /**
@@ -485,7 +485,7 @@ void LandmarkCutRandomExploration::validate() const {
 /**
  * @brief Perform the first exploration phase.
  */
-void LandmarkCutEGreedyExploration::trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHMaxTieBreakExploration::trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     // we now have one unsatisfied precondition less
     --relaxed_op->unsatisfied_preconditions;
     // we cannot have less than 0 unsatisfied preconditions
@@ -494,12 +494,10 @@ void LandmarkCutEGreedyExploration::trigger_operators(RelaxedOperator *relaxed_o
     // If all preconditions are satisfied, we can use this proposition
     // as the heuristic supporter.
     if (relaxed_op->unsatisfied_preconditions == 0) {
-        relaxed_op->count++;
         // As the priority queue is ordered by cost, we can safely
         // assign the h_max supporter and its cost.
         relaxed_op->heuristic_supporter = prop;
         relaxed_op->heuristic_supporter_cost = prop->heuristic_cost;
-        prop->count++;
         // Effect can be achieved for prop_cost + relaxed_op->cost.
         int target_cost = prop->heuristic_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects) {
@@ -512,11 +510,10 @@ void LandmarkCutEGreedyExploration::trigger_operators(RelaxedOperator *relaxed_o
 /**
  * @brief Performance optimization for the first exploration phase.
  */
-void LandmarkCutEGreedyExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
+void LandmarkCutHMaxTieBreakExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) {
     if (relaxed_op->heuristic_supporter == prop) {
         int old_supp_cost = relaxed_op->heuristic_supporter_cost;
         if (old_supp_cost > prop->heuristic_cost) {
-            relaxed_op->count++;
             update_supporters(*relaxed_op);
             int new_supp_cost = relaxed_op->heuristic_supporter_cost;
             if (new_supp_cost != old_supp_cost) {
@@ -533,29 +530,28 @@ void LandmarkCutEGreedyExploration::trigger_operators_incremental(RelaxedOperato
 /**
  * @brief Update the random supporters for all operators.
  *
- * This function updates the heuristic supporters for all operators
- * based a random choice of the preconditions.
+ * This function implements the same core logic as the h_max supporters,
+ * but with a tie-breaking mechanism that prefers used propositions.
  */
-void LandmarkCutEGreedyExploration::update_supporters(RelaxedOperator &op) const {
+void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) const {
     assert(!op.unsatisfied_preconditions);
-
-    // With chance epsilon, we choose a random precondition.
-    if (std::uniform_real_distribution<>(0.0f, 1.0f)(rd_generator) < 1.0 - epsilon) {
-        std::uniform_int_distribution<> distr(0, op.preconditions.size() - 1);
-        op.heuristic_supporter = op.preconditions[distr(rd_generator)];
-    } else {
-        for (size_t i = 0; i < op.preconditions.size(); ++i)
-            if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
+    for (size_t i = 0; i < op.preconditions.size(); ++i)
+        if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
+            op.heuristic_supporter = op.preconditions[i];
+        else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
+            // Tie-break: prefer an used one if current selected is used
+            if (op.heuristic_supporter->used && op.preconditions[i]->used) {
                 op.heuristic_supporter = op.preconditions[i];
-    }
+            }
+        }
+    op.heuristic_supporter->used = 1;
     op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
-    op.heuristic_supporter->count++;
 }
 
 /**
  * @brief Pseudo-validate the random exploration (prevent compiler errors).
  */
-void LandmarkCutEGreedyExploration::validate() const {
+void LandmarkCutHMaxTieBreakExploration::validate() const {
 #ifndef NDEBUG
     assert(1);
 #endif
@@ -753,7 +749,6 @@ bool LandmarkCutLandmarks::compute_landmarks(
         core.artificial_precondition.status = REACHED;
     }
 
-    core.print();
     return false;
 }
 }

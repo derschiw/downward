@@ -20,8 +20,8 @@ std::unique_ptr<LandmarkCutHeuristicExploration> PreconditionChoiceFunction::get
         return std::make_unique<LandmarkCutHAddExploration>(core);
     } else if (pcf_strategy == PCFStrategy::RANDOM) {
         return std::make_unique<LandmarkCutRandomExploration>(core);
-    } else if (pcf_strategy == PCFStrategy::EGREEDY) {
-        return std::make_unique<LandmarkCutEGreedyExploration>(core);
+    } else if (pcf_strategy == PCFStrategy::HMAXTIE) {
+        return std::make_unique<LandmarkCutHMaxTieBreakExploration>(core);
     } else {
         throw std::runtime_error("Unsupported PCF strategy");
     }
@@ -35,8 +35,8 @@ ostream &operator<<(ostream &os, const PCFStrategy &pcf) {
         return os << "hadd";
     case PCFStrategy::RANDOM:
         return os << "random";
-    case PCFStrategy::EGREEDY:
-        return os << "egreedy";
+    case PCFStrategy::HMAXTIE:
+        return os << "hmaxtie";
     default:
         cerr << "Name of PCFStrategy not known";
         utils::exit_with(utils::ExitCode::SEARCH_UNSUPPORTED);
@@ -47,6 +47,6 @@ static plugins::TypedEnumPlugin<PCFStrategy> _mutex_type_enum_plugin({
         {"hmax", "pcf using hmax"},
         {"hadd", "pcf using hadd"},
         {"random", "pcf using random selection"},
-        {"egreedy", "pcf using epsilon-greedy selection"},
+        {"hmaxtie", "pcf using hmax with tie-breaking"},
     });
 }
