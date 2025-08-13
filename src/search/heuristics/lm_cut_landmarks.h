@@ -30,11 +30,12 @@ struct RelaxedOperator {
     std::vector<RelaxedProposition *> effects;
     int base_cost; // 0 for axioms, 1 for regular operators
 
-
     int cost;
     int unsatisfied_preconditions;
     int heuristic_supporter_cost; // e.g. h_max_cost of heuristic_supporter
     RelaxedProposition *heuristic_supporter;
+    int reachability; // Number of ways to reach this operator
+
     RelaxedOperator(std::vector<RelaxedProposition *> &&pre,
                     std::vector<RelaxedProposition *> &&eff,
                     int op_id, int base)
@@ -50,7 +51,8 @@ struct RelaxedProposition {
 
     PropositionStatus status;
     int heuristic_cost;
-    int num_operators;
+    // Reachability is the number of ways to reach this relaxed proposition.
+    int reachability;
 };
 
 

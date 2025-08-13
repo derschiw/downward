@@ -60,12 +60,6 @@ LandmarkCutCore::LandmarkCutCore(const TaskProxy &task_proxy) {
         for (RelaxedProposition *eff : op.effects)
             eff->effect_of.push_back(&op);
     }
-    // Loop propositions to set the number of operators.
-    for (auto &var_props : propositions) {
-        for (RelaxedProposition &prop : var_props) {
-            prop.num_operators = prop.precondition_of.size() + prop.effect_of.size();
-        }
-    }
 }
 
 /**
@@ -121,6 +115,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     for (auto &var_props : core.propositions) {
         for (RelaxedProposition &prop : var_props) {
             prop.status = UNREACHED;
+            prop.reachability = 0;
         }
     }
 
@@ -131,6 +126,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
         op.unsatisfied_preconditions = op.preconditions.size();
         op.heuristic_supporter = nullptr;
         op.heuristic_supporter_cost = numeric_limits<int>::max();
+        op.reachability = 0;
     }
 }
 
@@ -140,6 +136,8 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
 void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
         enqueue_if_necessary(core.get_proposition(init_fact), 0);
+        // Initialize reachability for the initial state.
+        core.get_proposition(init_fact)->reachability = 1;
     }
     enqueue_if_necessary(&core.artificial_precondition, 0);
 }
@@ -503,10 +501,17 @@ void LandmarkCutHMaxTieBreakExploration::trigger_operators(RelaxedOperator *rela
         // assign the h_max supporter and its cost.
         relaxed_op->heuristic_supporter = prop;
         relaxed_op->heuristic_supporter_cost = prop->heuristic_cost;
+
+        for (RelaxedProposition *pre : relaxed_op->preconditions) {
+            relaxed_op->reachability += pre->reachability;
+        }
+        assert(relaxed_op->reachability > 0);
+
         // Effect can be achieved for prop_cost + relaxed_op->cost.
         int target_cost = prop->heuristic_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects) {
             enqueue_if_necessary(effect, target_cost);
+            effect->reachability += relaxed_op->reachability;
         }
     }
 }
@@ -544,8 +549,8 @@ void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) 
         if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
             op.heuristic_supporter = op.preconditions[i];
         else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
-            // Tie-break: prefer preconditions that is effect of fewer operators.
-            if (op.preconditions[i]->num_operators < op.heuristic_supporter->num_operators) {
+            // Tie-break: prefer preconditions that are harder to reach.
+            if (op.preconditions[i]->reachability < op.heuristic_supporter->reachability) {
                 op.heuristic_supporter = op.preconditions[i];
             }
         }
