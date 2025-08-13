@@ -50,6 +50,7 @@ struct RelaxedProposition {
 
     PropositionStatus status;
     int heuristic_cost;
+    int num_operators;
 };
 
 
