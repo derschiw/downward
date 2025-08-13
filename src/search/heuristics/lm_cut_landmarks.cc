@@ -538,9 +538,15 @@ void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) 
         if (op.preconditions[i]->heuristic_cost > op.heuristic_supporter->heuristic_cost)
             op.heuristic_supporter = op.preconditions[i];
         else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
-            // Tie-break: prefer an used one if current selected is used
-            if (op.preconditions[i]->precondition_of.size() > op.heuristic_supporter->precondition_of.size()) {
+            // Tie-break: prefer preconditions that is effect of fewer operators.
+            if (op.preconditions[i]->effect_of.size() < op.heuristic_supporter->effect_of.size()) {
                 op.heuristic_supporter = op.preconditions[i];
+            }
+            // If the number of effects is the same, prefer the one that is prcondition of fewer operators.
+            else if (op.preconditions[i]->effect_of.size() == op.heuristic_supporter->effect_of.size()) {
+                if (op.preconditions[i]->precondition_of.size() < op.heuristic_supporter->precondition_of.size()) {
+                    op.heuristic_supporter = op.preconditions[i];
+                }
             }
         }
     op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
