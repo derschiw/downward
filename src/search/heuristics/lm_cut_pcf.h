@@ -2,6 +2,7 @@
 #define HEURISTICS_LM_CUT_PCF_H
 
 #include <iostream>
+#include <memory>
 
 namespace lm_cut_heuristic {
 class LandmarkCutCore;
