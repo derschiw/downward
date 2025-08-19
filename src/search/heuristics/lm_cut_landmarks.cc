@@ -658,6 +658,16 @@ void LandmarkCutBackwardExploration::mark_goal_plateau(RelaxedProposition *subgo
 /*******************************************************
  * LANDMARK CUT LANDMARKS
  *******************************************************/
+/**
+ * @brief Initialize the landmark cut landmarks.
+ */
+
+LandmarkCutLandmarks::LandmarkCutLandmarks(const TaskProxy &task_proxy, const PCFStrategy &pcf_strategy)
+    : core(task_proxy),
+      backward(core),
+      precondition_choice_function(pcf_strategy) {
+    heuristic = precondition_choice_function.get_heuristic_exploration(core);
+}
 
 /**
  * @brief Constructor for LandmarkCutLandmarks.
