@@ -153,12 +153,7 @@ public:
     using LandmarkCallback = std::function<void (const Landmark &, int)>;
 
     LandmarkCutLandmarks(const TaskProxy &task_proxy,
-                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX)
-        : core(task_proxy),
-          backward(core),
-          precondition_choice_function(pcf_strategy) {
-        heuristic = precondition_choice_function.get_heuristic_exploration(core);
-    }
+                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX);
 
 
     /*
