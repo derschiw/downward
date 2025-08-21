@@ -550,7 +550,7 @@ void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) 
             op.heuristic_supporter = op.preconditions[i];
         else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
             // Tie-break: prefer preconditions that are harder to reach.
-            if (op.preconditions[i]->reachability < op.heuristic_supporter->reachability) {
+            if (op.preconditions[i]->reachability > op.heuristic_supporter->reachability) {
                 op.heuristic_supporter = op.preconditions[i];
             }
         }
