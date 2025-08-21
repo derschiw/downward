@@ -542,7 +542,7 @@ void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) 
             op.heuristic_supporter = op.preconditions[i];
         else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
             // Tie-break: prefer an used one if current selected is used
-            if (!op.preconditions[i]->used) {
+            if (op.preconditions[i]->used) {
                 op.heuristic_supporter = op.preconditions[i];
             }
         }
