@@ -467,6 +467,7 @@ void LandmarkCutRandomExploration::trigger_operators_incremental(RelaxedOperator
  * based a random choice of the preconditions.
  */
 void LandmarkCutRandomExploration::update_supporters(RelaxedOperator &op) const {
+    // TODO: dont use preconditions that are allready in the GOAL_ZONE
     assert(!op.unsatisfied_preconditions);
     std::uniform_int_distribution<> distr(0, op.preconditions.size() - 1);
     op.heuristic_supporter = op.preconditions[distr(rd_generator)];

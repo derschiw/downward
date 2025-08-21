@@ -115,7 +115,7 @@ public:
 };
 
 class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
-    mutable std::mt19937 rd_generator;
+    mutable std::mt19937 rd_generator; // TODO: use random generator from lab
 
 protected:
     void update_supporters(RelaxedOperator &op) const override;
