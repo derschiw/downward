@@ -52,7 +52,7 @@ public:
 
         add_heuristic_options_to_feature(*this, "lmcut");
 
-        add_option<PCFStrategy>("pcfstrategy", "Precondition choice function seleciton", "hmax");
+        add_option<PCFStrategy>("pcfstrategy", "Precondition choice function selection", "hmax");
 
         document_language_support("action costs", "supported");
         document_language_support("conditional effects", "not supported");
