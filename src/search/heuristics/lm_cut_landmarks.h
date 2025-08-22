@@ -106,8 +106,8 @@ class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
 protected:
     void update_supporters(RelaxedOperator &op) const override;
 public:
-    void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
-    void trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void trigger_operators(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
+    void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutHAddExploration(LandmarkCutCore &core_ref)
@@ -121,7 +121,7 @@ protected:
     void update_supporters(RelaxedOperator &op) const override;
 public:
     void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
-    void trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
+    void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
