@@ -10,8 +10,9 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include <random>
 
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
 
 namespace lm_cut_heuristic {
 // TODO: Fix duplication with the other relaxation heuristics.
@@ -115,7 +116,7 @@ public:
 };
 
 class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
-    mutable std::mt19937 rd_generator; // TODO: use random generator from lab
+    mutable utils::RandomNumberGenerator rng;
 
 protected:
     void update_supporters(RelaxedOperator &op) const override;
@@ -124,8 +125,8 @@ public:
     void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
-    LandmarkCutRandomExploration(LandmarkCutCore &core_ref)
-        : LandmarkCutHeuristicExploration(core_ref), rd_generator(std::random_device{}()) {}
+    LandmarkCutRandomExploration(LandmarkCutCore &core_ref, int random_seed = std::random_device{}())
+        : LandmarkCutHeuristicExploration(core_ref), rng(random_seed) {}
 };
 
 class LandmarkCutBackwardExploration {
