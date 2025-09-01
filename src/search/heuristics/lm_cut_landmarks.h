@@ -125,7 +125,7 @@ public:
     void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
-    LandmarkCutRandomExploration(LandmarkCutCore &core_ref, int random_seed = std::random_device{}())
+    LandmarkCutRandomExploration(LandmarkCutCore &core_ref, int random_seed)
         : LandmarkCutHeuristicExploration(core_ref), rng(random_seed) {}
 };
 

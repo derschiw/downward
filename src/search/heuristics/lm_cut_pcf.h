@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <random>
 
 namespace lm_cut_heuristic {
 class LandmarkCutCore;
@@ -17,9 +18,10 @@ enum class PCFStrategy {
 class PreconditionChoiceFunction {
 protected:
     PCFStrategy pcf_strategy;
+    int seed;
 public:
     std::unique_ptr<LandmarkCutHeuristicExploration> get_heuristic_exploration(LandmarkCutCore &core);
-    PreconditionChoiceFunction(const PCFStrategy &pcf_strategy);
+    PreconditionChoiceFunction(const PCFStrategy &pcf_strategy, int seed = std::random_device{}());
 };
 
 std::ostream &operator<<(std::ostream &os, const PCFStrategy &pcf_strategy);

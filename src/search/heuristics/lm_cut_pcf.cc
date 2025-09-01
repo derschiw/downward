@@ -8,8 +8,9 @@
 using namespace std;
 namespace lm_cut_heuristic {
 PreconditionChoiceFunction::PreconditionChoiceFunction(
-    const PCFStrategy &pcf_strategy) :
-    pcf_strategy(pcf_strategy) {
+    const PCFStrategy &pcf_strategy,
+    int seed
+    ) : pcf_strategy(pcf_strategy), seed(seed) {
     utils::g_log << "PCF Strategy: " << pcf_strategy << endl;
 }
 
@@ -19,7 +20,7 @@ std::unique_ptr<LandmarkCutHeuristicExploration> PreconditionChoiceFunction::get
     } else if (pcf_strategy == PCFStrategy::HADD) {
         return std::make_unique<LandmarkCutHAddExploration>(core);
     } else if (pcf_strategy == PCFStrategy::RANDOM) {
-        return std::make_unique<LandmarkCutRandomExploration>(core);
+        return std::make_unique<LandmarkCutRandomExploration>(core, seed);
     } else {
         throw std::runtime_error("Unsupported PCF strategy");
     }

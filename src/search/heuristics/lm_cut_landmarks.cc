@@ -469,7 +469,21 @@ void LandmarkCutRandomExploration::trigger_operators_incremental(RelaxedOperator
 void LandmarkCutRandomExploration::update_supporters(RelaxedOperator &op) const {
     // TODO: dont use preconditions that are allready in the GOAL_ZONE
     assert(!op.unsatisfied_preconditions);
-    op.heuristic_supporter = op.preconditions[rng.random(op.preconditions.size())];
+
+    // Collect candidate preconditions
+    std::vector<RelaxedProposition *> candidates;
+    candidates.reserve(op.preconditions.size());
+    for (RelaxedProposition *pre : op.preconditions) {
+        if (pre->status != GOAL_ZONE && pre->status != UNREACHED) {
+            candidates.push_back(pre);
+        }
+    }
+
+    // Fallback if all in GOAL_ZONE / UNREACHED
+    const std::vector<RelaxedProposition *> &pool =
+        candidates.empty() ? op.preconditions : candidates;
+
+    op.heuristic_supporter = pool[rng.random(pool.size())];
     op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
 }
 
