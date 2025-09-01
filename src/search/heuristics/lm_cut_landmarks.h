@@ -155,7 +155,7 @@ public:
 
     LandmarkCutLandmarks(const TaskProxy &task_proxy,
                          const PCFStrategy &pcf_strategy = PCFStrategy::HMAX,
-                         unsigned int seed = std::random_device{}());
+                         unsigned int seed = 42); // Arbitrary seed to make compilation work. Will be overridden.
 
 
     /*
