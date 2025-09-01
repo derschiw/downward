@@ -55,7 +55,7 @@ public:
         add_heuristic_options_to_feature(*this, "lmcut");
 
         add_option<PCFStrategy>("pcfstrategy", "Precondition choice function selection", "hmax");
-        add_option<int>("seed", "Random seed for precondition choice function", std::to_string(std::random_device{}()));
+        add_option<int>("seed", "Random seed for precondition choice function", "42");
 
         document_language_support("action costs", "supported");
         document_language_support("conditional effects", "not supported");
