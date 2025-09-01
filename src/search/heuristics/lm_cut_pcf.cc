@@ -9,9 +9,10 @@ using namespace std;
 namespace lm_cut_heuristic {
 PreconditionChoiceFunction::PreconditionChoiceFunction(
     const PCFStrategy &pcf_strategy,
-    int seed
+    unsigned int seed
     ) : pcf_strategy(pcf_strategy), seed(seed) {
     utils::g_log << "PCF Strategy: " << pcf_strategy << endl;
+    utils::g_log << "PCF Seed: " << seed << endl;
 }
 
 std::unique_ptr<LandmarkCutHeuristicExploration> PreconditionChoiceFunction::get_heuristic_exploration(LandmarkCutCore &core) {

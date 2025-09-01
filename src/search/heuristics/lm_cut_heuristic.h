@@ -23,7 +23,8 @@ public:
         const std::shared_ptr<AbstractTask> &transform,
         bool cache_estimates, const std::string &description,
         utils::Verbosity verbosity,
-        const PCFStrategy &pcf_strategy);
+        const PCFStrategy &pcf_strategy,
+        unsigned int seed);
 };
 }
 

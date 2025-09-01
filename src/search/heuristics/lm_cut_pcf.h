@@ -18,10 +18,10 @@ enum class PCFStrategy {
 class PreconditionChoiceFunction {
 protected:
     PCFStrategy pcf_strategy;
-    int seed;
+    unsigned int seed;
 public:
     std::unique_ptr<LandmarkCutHeuristicExploration> get_heuristic_exploration(LandmarkCutCore &core);
-    PreconditionChoiceFunction(const PCFStrategy &pcf_strategy, int seed = std::random_device{}());
+    PreconditionChoiceFunction(const PCFStrategy &pcf_strategy, unsigned int seed);
 };
 
 std::ostream &operator<<(std::ostream &os, const PCFStrategy &pcf_strategy);

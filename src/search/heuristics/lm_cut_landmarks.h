@@ -154,7 +154,8 @@ public:
     using LandmarkCallback = std::function<void (const Landmark &, int)>;
 
     LandmarkCutLandmarks(const TaskProxy &task_proxy,
-                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX);
+                         const PCFStrategy &pcf_strategy = PCFStrategy::HMAX,
+                         unsigned int seed = std::random_device{}());
 
 
     /*

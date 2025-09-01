@@ -9,6 +9,7 @@
 #include "../utils/logging.h"
 
 #include <iostream>
+#include <random>
 
 using namespace std;
 
@@ -16,9 +17,10 @@ namespace lm_cut_heuristic {
 LandmarkCutHeuristic::LandmarkCutHeuristic(
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
     const string &description, utils::Verbosity verbosity,
-    const PCFStrategy &pcf_strategy)
+    const PCFStrategy &pcf_strategy,
+    unsigned int seed)
     : Heuristic(transform, cache_estimates, description, verbosity),
-      landmark_generator(make_unique<LandmarkCutLandmarks>(task_proxy, pcf_strategy)) {
+      landmark_generator(make_unique<LandmarkCutLandmarks>(task_proxy, pcf_strategy, seed)) {
     if (log.is_at_least_normal()) {
         log << "Initializing landmark cut heuristic..." << endl;
     }
@@ -53,6 +55,7 @@ public:
         add_heuristic_options_to_feature(*this, "lmcut");
 
         add_option<PCFStrategy>("pcfstrategy", "Precondition choice function selection", "hmax");
+        add_option<int>("seed", "Random seed for precondition choice function", std::to_string(std::random_device{}()));
 
         document_language_support("action costs", "supported");
         document_language_support("conditional effects", "not supported");
@@ -68,7 +71,8 @@ public:
     create_component(const plugins::Options &opts) const override {
         return plugins::make_shared_from_arg_tuples<LandmarkCutHeuristic>(
             get_heuristic_arguments_from_options(opts),
-            opts.get<PCFStrategy>("pcfstrategy")
+            opts.get<PCFStrategy>("pcfstrategy"),
+            opts.get<int>("seed")
             );
     }
 };
