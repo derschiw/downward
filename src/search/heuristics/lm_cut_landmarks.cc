@@ -499,7 +499,7 @@ void LandmarkCutHMaxTieBreakExploration::trigger_operators(RelaxedOperator *rela
         // assign the h_max supporter and its cost.
         relaxed_op->heuristic_supporter = prop;
         relaxed_op->heuristic_supporter_cost = prop->heuristic_cost;
-        relaxed_op->heuristic_supporter->used = 1;
+        relaxed_op->heuristic_supporter->used++;
         // Effect can be achieved for prop_cost + relaxed_op->cost.
         int target_cost = prop->heuristic_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects) {
@@ -542,11 +542,11 @@ void LandmarkCutHMaxTieBreakExploration::update_supporters(RelaxedOperator &op) 
             op.heuristic_supporter = op.preconditions[i];
         else if (op.preconditions[i]->heuristic_cost == op.heuristic_supporter->heuristic_cost) {
             // Tie-break: prefer an used one if current selected is used
-            if (!op.preconditions[i]->used) {
+            if (op.preconditions[i]->used < op.heuristic_supporter->used) {
                 op.heuristic_supporter = op.preconditions[i];
             }
         }
-    op.heuristic_supporter->used = 1;
+    op.heuristic_supporter->used++;
     op.heuristic_supporter_cost = op.heuristic_supporter->heuristic_cost;
 }
 
