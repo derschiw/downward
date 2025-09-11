@@ -116,10 +116,8 @@ public:
 };
 
 class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
-    mutable utils::RandomNumberGenerator rng;
-
 protected:
-    void update_supporters(RelaxedOperator &op) const override;
+    mutable utils::RandomNumberGenerator rng;
 public:
     void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
     void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
@@ -127,6 +125,24 @@ public:
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref, int random_seed)
         : LandmarkCutHeuristicExploration(core_ref), rng(random_seed) {}
+};
+
+class LandmarkCutTotallyRandomExploration : public LandmarkCutRandomExploration {
+protected:
+    void update_supporters(RelaxedOperator &op) const override;
+public:
+    LandmarkCutTotallyRandomExploration(LandmarkCutCore &core_ref, int random_seed)
+        : LandmarkCutRandomExploration(core_ref, random_seed) {
+    }
+};
+
+class LandmarkCutAlmostRandomExploration : public LandmarkCutRandomExploration {
+protected:
+    void update_supporters(RelaxedOperator &op) const override;
+public:
+    LandmarkCutAlmostRandomExploration(LandmarkCutCore &core_ref, int random_seed)
+        : LandmarkCutRandomExploration(core_ref, random_seed) {
+    }
 };
 
 class LandmarkCutBackwardExploration {
