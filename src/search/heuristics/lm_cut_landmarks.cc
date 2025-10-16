@@ -350,6 +350,12 @@ void LandmarkCutHAddExploration::trigger_operators(RelaxedOperator *relaxed_op, 
  * based on the cut operators found in the previous round.
  */
 void LandmarkCutHAddExploration::trigger_operators_incremental(RelaxedOperator *relaxed_op, [[maybe_unused]] RelaxedProposition *prop) {
+    // Stop if the operator is not yet satisfied.
+    // We need to do this now instead of (prop == relaxed_op->heuristic_supporter) in h_max,
+    // as in h_add we do not have a single supporter who guaranteed satifaction.
+    if (relaxed_op->unsatisfied_preconditions > 0)
+        return;
+
     int old_supp_cost = relaxed_op->heuristic_supporter_cost;
     update_supporters(*relaxed_op);
 
