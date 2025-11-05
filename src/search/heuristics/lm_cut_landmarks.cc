@@ -125,6 +125,7 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
         op.unsatisfied_preconditions = op.preconditions.size();
         op.h_max_supporter = nullptr;
         op.h_max_supporter_cost = numeric_limits<int>::max();
+        op.selected_precondition = nullptr;
     }
 }
 
@@ -237,6 +238,7 @@ void LandmarkCutHMaxExploration::trigger_operators(RelaxedOperator *relaxed_op, 
         // assign the h_max supporter and its cost.
         relaxed_op->h_max_supporter = prop;
         relaxed_op->h_max_supporter_cost = prop->h_max_cost;
+        relaxed_op->selected_precondition = prop;
         // Effect can be achieved for prop_cost + relaxed_op->cost.
         int target_cost = prop->h_max_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects) {
@@ -281,6 +283,7 @@ void LandmarkCutHMaxExploration::update_supporters(RelaxedOperator &op) const {
         if (op.preconditions[i]->h_max_cost > op.h_max_supporter->h_max_cost)
             op.h_max_supporter = op.preconditions[i];
     op.h_max_supporter_cost = op.h_max_supporter->h_max_cost;
+    op.selected_precondition = op.h_max_supporter;
 }
 
 /**
@@ -392,6 +395,7 @@ void LandmarkCutHAddExploration::update_supporters(RelaxedOperator &op) const {
         supporter_cost += op.preconditions[i]->h_max_cost;
     }
     op.h_max_supporter_cost = supporter_cost;
+    op.selected_precondition = op.h_max_supporter;
 }
 
 /**
@@ -490,8 +494,7 @@ void LandmarkCutAlmostRandomExploration::update_supporters(RelaxedOperator &op) 
     const std::vector<RelaxedProposition *> &pool =
         candidates.empty() ? op.preconditions : candidates;
 
-    op.h_max_supporter = pool[rng.random(pool.size())];
-    op.h_max_supporter_cost = op.h_max_supporter->h_max_cost;
+    op.selected_precondition = pool[rng.random(pool.size())];
 }
 
 /**
@@ -504,8 +507,7 @@ void LandmarkCutTotallyRandomExploration::update_supporters(RelaxedOperator &op)
     assert(!op.unsatisfied_preconditions);
     std::uniform_int_distribution<> distr(0, op.preconditions.size() - 1);
 
-    op.h_max_supporter = op.preconditions[rng.random(op.preconditions.size())];
-    op.h_max_supporter_cost = op.h_max_supporter->h_max_cost;
+    op.selected_precondition = op.preconditions[rng.random(op.preconditions.size())];
 }
 
 /**
@@ -522,7 +524,7 @@ void LandmarkCutRandomExploration::validate() const {
  *******************************************************/
 
 /**
- * @brief Perform the backward exploration.
+ * @brief Perform the forward exploration to identify the cut after marking the goal zone.
  */
 void LandmarkCutBackwardExploration::cut_computation(
     const State &state, vector<RelaxedProposition *> &cut_computation_queue,
@@ -530,8 +532,7 @@ void LandmarkCutBackwardExploration::cut_computation(
     assert(cut_computation_queue.empty());
     assert(cut.empty());
 
-    // The artificial preconditions is a dummy proposition, that
-    // connects all initial facts.
+    // Connect all initial propositions to the artificial precondition.
     core.artificial_precondition.status = BEFORE_GOAL_ZONE;
     cut_computation_queue.push_back(&core.artificial_precondition);
 
@@ -547,7 +548,7 @@ void LandmarkCutBackwardExploration::cut_computation(
         const vector<RelaxedOperator *> &triggered_operators =
             prop->precondition_of;
         for (RelaxedOperator *relaxed_op : triggered_operators) {
-            if (relaxed_op->h_max_supporter == prop) {
+            if (relaxed_op->selected_precondition == prop) {
                 bool reached_goal_zone = false;
 
                 // Here we check if the operator can reach the goal zone.
@@ -594,7 +595,7 @@ void LandmarkCutBackwardExploration::mark_goal_plateau(RelaxedProposition *subgo
         subgoal->status = GOAL_ZONE;
         for (RelaxedOperator *achiever : subgoal->effect_of)
             if (achiever->cost == 0)
-                mark_goal_plateau(achiever->h_max_supporter);
+                mark_goal_plateau(achiever->selected_precondition);
     }
 }
 
