@@ -523,19 +523,6 @@ void LandmarkCutRandomExploration::validate() const {
 
 /**
  * @brief Perform the backward exploration.
- *
- * The second exploration phase is a backward exploration (from init to goal)
- * that identifies the cut operators that can reach the goal zone (i.e.,
- * the operators that must be applied to reach the goal zone).
-
- * Sidenote: Backwards here means that we know the goal zone and
- * ask which operators can reach it. (Instead of asking what we can
- * reach given the initial state(s).)
- *
- * [Initial State] ---> [Cut Operators] ---> [Goal Zone] ---> [Goals]
- *     ^                      ^                  ^
- *     |                      |                  |
- * Start here         Find these        Already known
  */
 void LandmarkCutBackwardExploration::cut_computation(
     const State &state, vector<RelaxedProposition *> &cut_computation_queue,
