@@ -115,11 +115,14 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     for (auto &var_props : core.propositions) {
         for (RelaxedProposition &prop : var_props) {
             prop.status = UNREACHED;
+            prop.h_add_cost = numeric_limits<int>::max();
         }
     }
 
     core.artificial_goal.status = UNREACHED;
+    core.artificial_goal.h_add_cost = numeric_limits<int>::max();
     core.artificial_precondition.status = UNREACHED;
+    core.artificial_precondition.h_add_cost = numeric_limits<int>::max();
 
     for (RelaxedOperator &op : core.relaxed_operators) {
         op.unsatisfied_preconditions = op.preconditions.size();
@@ -135,8 +138,11 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
  */
 void LandmarkCutHeuristicExploration::setup_exploration_queue_state(const State &state) {
     for (FactProxy init_fact : state) {
-        enqueue_if_necessary(core.get_proposition(init_fact), 0);
+        RelaxedProposition *prop = core.get_proposition(init_fact);
+        prop->h_add_cost = 0;  // Initialize h_add_cost for initial facts
+        enqueue_if_necessary(prop, 0);
     }
+    core.artificial_precondition.h_add_cost = 0;  // Initialize h_add_cost for artificial precondition
     enqueue_if_necessary(&core.artificial_precondition, 0);
 }
 
@@ -567,7 +573,8 @@ bool LandmarkCutLandmarks::compute_landmarks(
         }
 
         // Compute the new heuristic values for the next round efficiently.
-        heuristic->h_max_exploration_incremental(cut);
+        // heuristic->h_max_exploration_incremental(cut);
+        heuristic->h_max_exploration(state);
         // heuristic->validate();  // too expensive to use even in regular debug mode
         cut.clear();
 
