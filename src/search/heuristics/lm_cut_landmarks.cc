@@ -188,7 +188,10 @@ void LandmarkCutHeuristicExploration::h_max_exploration(const State &state) {
                 // assign the h_max supporter and its cost.
                 relaxed_op->h_max_supporter = prop;
                 relaxed_op->h_max_supporter_cost = prop->h_max_cost;
-                relaxed_op->selected_precondition = prop;
+
+                // Select a precondition according to the strategy.
+                select_precondition(*relaxed_op);
+
                 // Effect can be achieved for prop_cost + relaxed_op->cost.
                 int target_cost = prop->h_max_cost + relaxed_op->cost;
                 for (RelaxedProposition *effect : relaxed_op->effects) {
