@@ -124,7 +124,8 @@ void LandmarkCutHeuristicExploration::setup_exploration_queue() {
     for (RelaxedOperator &op : core.relaxed_operators) {
         op.unsatisfied_preconditions = op.preconditions.size();
         op.h_max_supporter = nullptr;
-        op.h_max_supporter_cost = numeric_limits<int>::max();
+        op.h_max_cost = numeric_limits<int>::max();
+        op.h_add_cost = numeric_limits<int>::max();
         op.selected_precondition = nullptr;
     }
 }
@@ -187,16 +188,16 @@ void LandmarkCutHeuristicExploration::h_max_exploration(const State &state) {
                 // As the priority queue is ordered by cost, we can safely
                 // assign the h_max supporter and its cost.
                 relaxed_op->h_max_supporter = prop;
-                relaxed_op->h_max_supporter_cost = prop->h_max_cost;
-
-                // Select a precondition according to the strategy.
-                select_precondition(*relaxed_op);
+                relaxed_op->h_max_cost = prop->h_max_cost;
 
                 // Effect can be achieved for prop_cost + relaxed_op->cost.
                 int target_cost = prop->h_max_cost + relaxed_op->cost;
                 for (RelaxedProposition *effect : relaxed_op->effects) {
                     enqueue_if_necessary(effect, target_cost);
                 }
+
+                // Select a precondition according to the strategy.
+                select_precondition(*relaxed_op);
             }
         }
     }
@@ -216,7 +217,7 @@ void LandmarkCutHeuristicExploration::h_max_exploration_incremental(vector<Relax
 
     // Enqueue the effects of the cut operators.
     for (RelaxedOperator *relaxed_op : cut) {
-        int cost = relaxed_op->h_max_supporter_cost + relaxed_op->cost;
+        int cost = relaxed_op->h_max_cost + relaxed_op->cost;
         for (RelaxedProposition *effect : relaxed_op->effects)
             enqueue_if_necessary(effect, cost);
     }
@@ -234,19 +235,19 @@ void LandmarkCutHeuristicExploration::h_max_exploration_incremental(vector<Relax
         // Examine all operators having this proposition as a precondition.
         for (RelaxedOperator *relaxed_op : triggered_operators) {
             if (relaxed_op->h_max_supporter == prop) {
-                int old_supp_cost = relaxed_op->h_max_supporter_cost;
+                int old_supp_cost = relaxed_op->h_max_cost;
                 if (old_supp_cost > prop->h_max_cost) {
                     // Now we update the supporter to the best precondition.
                     assert(!relaxed_op->unsatisfied_preconditions);
                     for (size_t i = 0; i < relaxed_op->preconditions.size(); ++i)
                         if (relaxed_op->preconditions[i]->h_max_cost > relaxed_op->h_max_supporter->h_max_cost)
                             relaxed_op->h_max_supporter = relaxed_op->preconditions[i];
-                    relaxed_op->h_max_supporter_cost = relaxed_op->h_max_supporter->h_max_cost;
+                    relaxed_op->h_max_cost = relaxed_op->h_max_supporter->h_max_cost;
 
                     // Then we select a precondition according to the strategy.
                     select_precondition(*relaxed_op);
 
-                    int new_supp_cost = relaxed_op->h_max_supporter_cost;
+                    int new_supp_cost = relaxed_op->h_max_cost;
                     if (new_supp_cost != old_supp_cost) {
                         // This operator has become cheaper.
                         assert(new_supp_cost < old_supp_cost);
@@ -294,7 +295,7 @@ void LandmarkCutHMaxExploration::validate() const {
             assert(!op.h_max_supporter);
         } else {
             assert(op.h_max_supporter);
-            int h_max_cost = op.h_max_supporter_cost;
+            int h_max_cost = op.h_max_cost;
             assert(h_max_cost == op.h_max_supporter->h_max_cost);
             for (RelaxedProposition *pre : op.preconditions) {
                 assert(pre->status != UNREACHED);
@@ -316,21 +317,24 @@ void LandmarkCutHMaxExploration::validate() const {
  * based on the current state of the propositions.
  */
 void LandmarkCutHAddExploration::select_precondition(RelaxedOperator &op) const {
-    assert(!op.unsatisfied_preconditions);
+    // We select the supporter with the highest h_add cost.
+    RelaxedProposition *supporter = nullptr;
     int supporter_cost = 0;
     int max_cost = -1;
     for (size_t i = 0; i < op.preconditions.size(); ++i) {
-        // We dont actually "need" a single supporter in h-add, but
-        // when we create the justification graph, we still need to
-        // know the supporter with the highest h_add cost.
-        if (op.preconditions[i]->h_max_cost > max_cost) {
-            max_cost = op.preconditions[i]->h_max_cost;
-            op.h_max_supporter = op.preconditions[i];
+        if (op.preconditions[i]->h_add_cost > max_cost) {
+            max_cost = op.preconditions[i]->h_add_cost;
+            supporter = op.preconditions[i];
         }
-        supporter_cost += op.preconditions[i]->h_max_cost;
+        supporter_cost += op.preconditions[i]->h_add_cost;
     }
-    op.h_max_supporter_cost = supporter_cost;
-    op.selected_precondition = op.h_max_supporter;
+    op.h_add_cost = supporter_cost;
+    op.selected_precondition = supporter;
+
+    // Now we have to update the effects' h_add costs.
+    for (RelaxedProposition *effect : op.effects) {
+        effect->h_add_cost = min(op.h_add_cost + op.cost, effect->h_add_cost);
+    }
 }
 
 /**
@@ -338,30 +342,7 @@ void LandmarkCutHAddExploration::select_precondition(RelaxedOperator &op) const 
  */
 void LandmarkCutHAddExploration::validate() const {
 #ifndef NDEBUG
-    // Using conditional compilation to avoid complaints about unused
-    // variables when using NDEBUG. This whole code does nothing useful
-    // when assertions are switched off anyway.
-    for (const RelaxedOperator &op : core.relaxed_operators) {
-        if (op.unsatisfied_preconditions) {
-            bool reachable = true;
-            for (RelaxedProposition *pre : op.preconditions) {
-                if (pre->status == UNREACHED) {
-                    reachable = false;
-                    break;
-                }
-            }
-            assert(!reachable);
-            assert(!op.h_max_supporter);
-        } else {
-            assert(op.h_max_supporter);
-            int h_max_cost = op.h_max_supporter_cost;
-            assert(h_max_cost >= op.h_max_supporter->h_max_cost);
-            for (RelaxedProposition *pre : op.preconditions) {
-                assert(pre->status != UNREACHED);
-                assert(pre->h_max_cost <= h_max_cost);
-            }
-        }
-    }
+    assert(1);
 #endif
 }
 

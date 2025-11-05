@@ -33,14 +33,16 @@ struct RelaxedOperator {
 
     int cost;
     int unsatisfied_preconditions;
-    int h_max_supporter_cost; // e.g. h_max_cost of h_max_supporter
+    int h_max_cost;
+    int h_add_cost;
+
     RelaxedProposition *h_max_supporter;
     RelaxedProposition *selected_precondition;
     RelaxedOperator(std::vector<RelaxedProposition *> &&pre,
                     std::vector<RelaxedProposition *> &&eff,
                     int op_id, int base)
         : original_op_id(op_id), preconditions(pre), effects(eff), base_cost(base),
-          cost(-1), unsatisfied_preconditions(-1), h_max_supporter_cost(-1),
+          cost(-1), unsatisfied_preconditions(-1), h_max_cost(-1),
           h_max_supporter(nullptr) {
     }
 };
@@ -51,6 +53,7 @@ struct RelaxedProposition {
 
     PropositionStatus status;
     int h_max_cost;
+    int h_add_cost;
 };
 
 
