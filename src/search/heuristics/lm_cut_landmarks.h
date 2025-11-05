@@ -75,16 +75,14 @@ class LandmarkCutHeuristicExploration {
 protected:
     priority_queues::AdaptiveQueue<RelaxedProposition *> priority_queue;
     LandmarkCutCore &core;
-    virtual void update_supporters(RelaxedOperator &op) const = 0;
+    virtual void select_precondition(RelaxedOperator &op) const = 0;
 
 public:
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);
-    void heuristic_exploration(const State &state);
-    void heuristic_exploration_incremental(std::vector<RelaxedOperator *> &cut);
+    void h_max_exploration(const State &state);
+    void h_max_exploration_incremental(std::vector<RelaxedOperator *> &cut);
     void enqueue_if_necessary(RelaxedProposition *prop, int cost);
-    virtual void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) = 0;
-    virtual void trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) = 0;
     virtual void validate() const = 0;
 
     virtual ~LandmarkCutHeuristicExploration() = default;
@@ -94,11 +92,8 @@ public:
 
 class LandmarkCutHMaxExploration : public LandmarkCutHeuristicExploration {
 protected:
-    void update_supporters(RelaxedOperator &op) const override;
+    void select_precondition(RelaxedOperator &op) const override;
 public:
-    void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
-    void trigger_operators_incremental(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
-
     void validate() const override;
     LandmarkCutHMaxExploration(LandmarkCutCore &core_ref)
         : LandmarkCutHeuristicExploration(core_ref) {}
@@ -106,10 +101,8 @@ public:
 
 class LandmarkCutHAddExploration : public LandmarkCutHeuristicExploration {
 protected:
-    void update_supporters(RelaxedOperator &op) const override;
+    void select_precondition(RelaxedOperator &op) const override;
 public:
-    void trigger_operators(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
-    void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutHAddExploration(LandmarkCutCore &core_ref)
@@ -120,8 +113,6 @@ class LandmarkCutRandomExploration : public LandmarkCutHeuristicExploration {
 protected:
     mutable utils::RandomNumberGenerator rng;
 public:
-    void trigger_operators(RelaxedOperator *relaxed_op, RelaxedProposition *prop) override;
-    void trigger_operators_incremental(RelaxedOperator * relaxed_op, [[maybe_unused]] RelaxedProposition *prop) override;
     void validate() const override;
 
     LandmarkCutRandomExploration(LandmarkCutCore &core_ref, int random_seed)
@@ -130,7 +121,7 @@ public:
 
 class LandmarkCutTotallyRandomExploration : public LandmarkCutRandomExploration {
 protected:
-    void update_supporters(RelaxedOperator &op) const override;
+    void select_precondition(RelaxedOperator &op) const override;
 public:
     LandmarkCutTotallyRandomExploration(LandmarkCutCore &core_ref, int random_seed)
         : LandmarkCutRandomExploration(core_ref, random_seed) {
@@ -139,7 +130,7 @@ public:
 
 class LandmarkCutAlmostRandomExploration : public LandmarkCutRandomExploration {
 protected:
-    void update_supporters(RelaxedOperator &op) const override;
+    void select_precondition(RelaxedOperator &op) const override;
 public:
     LandmarkCutAlmostRandomExploration(LandmarkCutCore &core_ref, int random_seed)
         : LandmarkCutRandomExploration(core_ref, random_seed) {
