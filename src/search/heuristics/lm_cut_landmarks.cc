@@ -573,8 +573,8 @@ bool LandmarkCutLandmarks::compute_landmarks(
         }
 
         // Compute the new heuristic values for the next round efficiently.
-        // heuristic->h_max_exploration_incremental(cut);
-        heuristic->h_max_exploration(state);
+        heuristic->h_max_exploration_incremental(cut);
+        // heuristic->h_max_exploration(state);
         // heuristic->validate();  // too expensive to use even in regular debug mode
         cut.clear();
 
