@@ -387,13 +387,26 @@ void LandmarkCutAlmostRandomExploration::select_precondition(RelaxedOperator &op
  * @brief Update the random supporters for all operators.
  *
  * This function updates the heuristic supporters for all operators
- * based a random choice of the preconditions.
+ * based a random choice of the preconditions excluding preconditions
+ * that have h_max cost zero if possible.
  */
 void LandmarkCutTotallyRandomExploration::select_precondition(RelaxedOperator &op) const {
     assert(!op.unsatisfied_preconditions);
-    std::uniform_int_distribution<> distr(0, op.preconditions.size() - 1);
 
-    op.selected_precondition = op.preconditions[rng.random(op.preconditions.size())];
+    // Collect candidate preconditions
+    std::vector<RelaxedProposition *> candidates;
+    candidates.reserve(op.preconditions.size());
+    for (RelaxedProposition *pre : op.preconditions) {
+        if (pre->h_max_cost != 0) {
+            candidates.push_back(pre);
+        }
+    }
+
+    // Fallback if all in GOAL_ZONE / UNREACHED
+    const std::vector<RelaxedProposition *> &pool =
+        candidates.empty() ? op.preconditions : candidates;
+
+    op.selected_precondition = pool[rng.random(pool.size())];
 }
 
 /**
